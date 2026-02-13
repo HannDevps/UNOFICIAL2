@@ -74,6 +74,40 @@ public sealed class RuntimeUiConfigSnapshot
 
     public int OverlayPadding { get; set; } = 8;
 
+    public bool TouchEnabled { get; set; } = true;
+
+    public bool TouchGameplayOnly { get; set; } = true;
+
+    public bool TouchAutoDisableOnExternalInput { get; set; } = true;
+
+    public bool TouchTapMenuNavigation { get; set; } = true;
+
+    public bool TouchEnableShoulders { get; set; } = true;
+
+    public bool TouchEnableDpad { get; set; } = true;
+
+    public bool TouchEnableStartSelect { get; set; } = true;
+
+    public float TouchOpacity { get; set; } = 0.82f;
+
+    public float TouchScale { get; set; } = 1f;
+
+    public float TouchLeftStickX { get; set; } = 0.18f;
+
+    public float TouchLeftStickY { get; set; } = 0.76f;
+
+    public float TouchLeftStickRadius { get; set; } = 0.12f;
+
+    public float TouchLeftStickDeadzone { get; set; } = 0.26f;
+
+    public float TouchActionX { get; set; } = 0.82f;
+
+    public float TouchActionY { get; set; } = 0.74f;
+
+    public float TouchButtonRadius { get; set; } = 0.07f;
+
+    public float TouchActionSpacing { get; set; } = 1.35f;
+
     public RuntimeUiConfigSnapshot Clone()
     {
         return new RuntimeUiConfigSnapshot
@@ -98,7 +132,24 @@ public sealed class RuntimeUiConfigSnapshot
             OverlayFontScale = OverlayFontScale,
             OverlayUpdateIntervalMs = OverlayUpdateIntervalMs,
             OverlayBackground = OverlayBackground,
-            OverlayPadding = OverlayPadding
+            OverlayPadding = OverlayPadding,
+            TouchEnabled = TouchEnabled,
+            TouchGameplayOnly = TouchGameplayOnly,
+            TouchAutoDisableOnExternalInput = TouchAutoDisableOnExternalInput,
+            TouchTapMenuNavigation = TouchTapMenuNavigation,
+            TouchEnableShoulders = TouchEnableShoulders,
+            TouchEnableDpad = TouchEnableDpad,
+            TouchEnableStartSelect = TouchEnableStartSelect,
+            TouchOpacity = TouchOpacity,
+            TouchScale = TouchScale,
+            TouchLeftStickX = TouchLeftStickX,
+            TouchLeftStickY = TouchLeftStickY,
+            TouchLeftStickRadius = TouchLeftStickRadius,
+            TouchLeftStickDeadzone = TouchLeftStickDeadzone,
+            TouchActionX = TouchActionX,
+            TouchActionY = TouchActionY,
+            TouchButtonRadius = TouchButtonRadius,
+            TouchActionSpacing = TouchActionSpacing
         };
     }
 }
@@ -147,6 +198,40 @@ public sealed class RuntimeUiConfigUpdate
 
     public int? OverlayPadding { get; set; }
 
+    public bool? TouchEnabled { get; set; }
+
+    public bool? TouchGameplayOnly { get; set; }
+
+    public bool? TouchAutoDisableOnExternalInput { get; set; }
+
+    public bool? TouchTapMenuNavigation { get; set; }
+
+    public bool? TouchEnableShoulders { get; set; }
+
+    public bool? TouchEnableDpad { get; set; }
+
+    public bool? TouchEnableStartSelect { get; set; }
+
+    public float? TouchOpacity { get; set; }
+
+    public float? TouchScale { get; set; }
+
+    public float? TouchLeftStickX { get; set; }
+
+    public float? TouchLeftStickY { get; set; }
+
+    public float? TouchLeftStickRadius { get; set; }
+
+    public float? TouchLeftStickDeadzone { get; set; }
+
+    public float? TouchActionX { get; set; }
+
+    public float? TouchActionY { get; set; }
+
+    public float? TouchButtonRadius { get; set; }
+
+    public float? TouchActionSpacing { get; set; }
+
     public bool HasAnyValue()
     {
         return VSync.HasValue
@@ -169,7 +254,24 @@ public sealed class RuntimeUiConfigUpdate
             || OverlayFontScale.HasValue
             || OverlayUpdateIntervalMs.HasValue
             || OverlayBackground.HasValue
-            || OverlayPadding.HasValue;
+            || OverlayPadding.HasValue
+            || TouchEnabled.HasValue
+            || TouchGameplayOnly.HasValue
+            || TouchAutoDisableOnExternalInput.HasValue
+            || TouchTapMenuNavigation.HasValue
+            || TouchEnableShoulders.HasValue
+            || TouchEnableDpad.HasValue
+            || TouchEnableStartSelect.HasValue
+            || TouchOpacity.HasValue
+            || TouchScale.HasValue
+            || TouchLeftStickX.HasValue
+            || TouchLeftStickY.HasValue
+            || TouchLeftStickRadius.HasValue
+            || TouchLeftStickDeadzone.HasValue
+            || TouchActionX.HasValue
+            || TouchActionY.HasValue
+            || TouchButtonRadius.HasValue
+            || TouchActionSpacing.HasValue;
     }
 }
 

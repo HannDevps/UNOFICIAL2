@@ -18,6 +18,7 @@ using Celeste.Core.Platform.Logging;
 using Celeste.Core.Platform.Runtime;
 using Celeste.Core.Platform.Services;
 using Microsoft.Xna.Framework;
+using Monocle;
 
 namespace Celeste.Android;
 
@@ -38,6 +39,7 @@ public class RuntimeActivity : AndroidGameActivity
     private PlatformServices? _services;
     private AndroidDeviceProfile? _deviceProfile;
     private string _activeAbi = "unknown";
+    private AndroidTouchController? _touchController;
 
     protected override void OnCreate(Bundle? bundle)
     {
@@ -91,6 +93,10 @@ public class RuntimeActivity : AndroidGameActivity
         var input = new AndroidInputProvider(_logger);
         var audio = new NullAudioBackend(_logger);
         _services = new PlatformServices(_logger, paths, fileSystem, input, audio);
+        _touchController = new AndroidTouchController(_logger);
+        MInput.KeyboardStateOverride = _touchController.ApplyKeyboardState;
+        MInput.MouseStateOverride = _touchController.ApplyMouseState;
+        _logger.Log(LogLevel.Info, "INPUT", "Touch controller enabled (Xbox-style virtual controls + map touch navigation)");
         AndroidCrashReporter.LogMemoryPressure(_logger, "RuntimeActivity OnCreate memory snapshot", _deviceProfile.ToContextString());
 
         global::Celeste.Settings.Initialize();
@@ -101,7 +107,7 @@ public class RuntimeActivity : AndroidGameActivity
 
         _logger.Log(LogLevel.Info, "RUNTIME", $"Starting Celeste runtime activity ABI={_activeAbi}");
 
-        _game = new CelesteRuntimeGame(_services, _fullscreen, this, _activeAbi);
+        _game = new CelesteRuntimeGame(_services, _fullscreen, this, _activeAbi, _touchController);
         _view = _game.Services.GetService(typeof(View)) as View ?? throw new InvalidOperationException("MonoGame did not provide a root view");
         SetContentView(_view);
         _view.Post(() => _fullscreen.Apply(this, "RuntimeActivity-OnCreate-PostSetContentView"));
@@ -194,6 +200,10 @@ public class RuntimeActivity : AndroidGameActivity
         _game = null;
         _view = null;
         _services = null;
+        _touchController?.Dispose();
+        _touchController = null;
+        MInput.KeyboardStateOverride = null;
+        MInput.MouseStateOverride = null;
         _logger?.Log(LogLevel.Info, "APP", "RUNTIME_SESSION_END");
         _logger?.Flush();
         _logger?.Dispose();

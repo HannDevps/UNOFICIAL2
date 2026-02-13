@@ -28,6 +28,26 @@ public static class MenuOptions
 
 	private static readonly int[] RuntimeOverlayPaddingValues = new int[7] { 0, 4, 8, 12, 16, 24, 32 };
 
+	private static readonly int[] RuntimeTouchOpacityValues = new int[8] { 35, 45, 55, 65, 75, 85, 95, 100 };
+
+	private static readonly float[] RuntimeTouchScaleValues = new float[7] { 0.7f, 0.85f, 1f, 1.15f, 1.3f, 1.45f, 1.6f };
+
+	private static readonly float[] RuntimeTouchDeadzoneValues = new float[8] { 0.1f, 0.15f, 0.2f, 0.25f, 0.3f, 0.35f, 0.45f, 0.6f };
+
+	private static readonly float[] RuntimeTouchLeftXValues = new float[9] { 0.1f, 0.13f, 0.16f, 0.18f, 0.2f, 0.23f, 0.26f, 0.3f, 0.35f };
+
+	private static readonly float[] RuntimeTouchLeftYValues = new float[9] { 0.56f, 0.62f, 0.68f, 0.72f, 0.76f, 0.8f, 0.84f, 0.88f, 0.92f };
+
+	private static readonly float[] RuntimeTouchActionXValues = new float[9] { 0.58f, 0.63f, 0.68f, 0.73f, 0.78f, 0.82f, 0.86f, 0.9f, 0.94f };
+
+	private static readonly float[] RuntimeTouchActionYValues = new float[9] { 0.56f, 0.62f, 0.68f, 0.72f, 0.74f, 0.78f, 0.82f, 0.86f, 0.9f };
+
+	private static readonly float[] RuntimeTouchStickRadiusValues = new float[7] { 0.08f, 0.1f, 0.12f, 0.14f, 0.16f, 0.18f, 0.2f };
+
+	private static readonly float[] RuntimeTouchButtonRadiusValues = new float[8] { 0.05f, 0.06f, 0.07f, 0.08f, 0.09f, 0.11f, 0.13f, 0.14f };
+
+	private static readonly float[] RuntimeTouchSpacingValues = new float[7] { 1.05f, 1.2f, 1.35f, 1.5f, 1.7f, 1.85f, 2f };
+
 	public static TextMenu Create(bool inGame = false, EventInstance snapshot = null)
 	{
 		MenuOptions.inGame = inGame;
@@ -335,6 +355,154 @@ public static class MenuOptions
 				update.OverlayPadding = RuntimeOverlayPaddingValues[Math.Clamp(i, 0, RuntimeOverlayPaddingValues.Length - 1)];
 			});
 		}));
+
+		menu.Add(new TextMenu.SubHeader(RuntimeText("runtime_touch")));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_enabled"), snapshot.TouchEnabled).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchEnabled = on;
+			});
+		}));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_gameplay_only"), snapshot.TouchGameplayOnly).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchGameplayOnly = on;
+			});
+		}));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_auto_disable"), snapshot.TouchAutoDisableOnExternalInput).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchAutoDisableOnExternalInput = on;
+			});
+		}));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_menu_tap"), snapshot.TouchTapMenuNavigation).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchTapMenuNavigation = on;
+			});
+		}));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_dpad"), snapshot.TouchEnableDpad).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchEnableDpad = on;
+			});
+		}));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_shoulders"), snapshot.TouchEnableShoulders).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchEnableShoulders = on;
+			});
+		}));
+
+		menu.Add(new TextMenu.OnOff(RuntimeText("runtime_touch_start_select"), snapshot.TouchEnableStartSelect).Change(delegate(bool on)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchEnableStartSelect = on;
+			});
+		}));
+
+		int touchOpacityIndex = FindNearestIndex(RuntimeTouchOpacityValues, (int)Math.Round(snapshot.TouchOpacity * 100f));
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_opacity"), (int i) => RuntimeTouchOpacityValues[Math.Clamp(i, 0, RuntimeTouchOpacityValues.Length - 1)] + "%", 0, RuntimeTouchOpacityValues.Length - 1, touchOpacityIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchOpacity = (float)RuntimeTouchOpacityValues[Math.Clamp(i, 0, RuntimeTouchOpacityValues.Length - 1)] / 100f;
+			});
+		}));
+
+		int touchScaleIndex = FindNearestIndex(RuntimeTouchScaleValues, snapshot.TouchScale);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_scale"), (int i) => (RuntimeTouchScaleValues[Math.Clamp(i, 0, RuntimeTouchScaleValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchScaleValues.Length - 1, touchScaleIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchScale = RuntimeTouchScaleValues[Math.Clamp(i, 0, RuntimeTouchScaleValues.Length - 1)];
+			});
+		}));
+
+		int touchDeadzoneIndex = FindNearestIndex(RuntimeTouchDeadzoneValues, snapshot.TouchLeftStickDeadzone);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_deadzone"), (int i) => (RuntimeTouchDeadzoneValues[Math.Clamp(i, 0, RuntimeTouchDeadzoneValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchDeadzoneValues.Length - 1, touchDeadzoneIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchLeftStickDeadzone = RuntimeTouchDeadzoneValues[Math.Clamp(i, 0, RuntimeTouchDeadzoneValues.Length - 1)];
+			});
+		}));
+
+		int touchStickRadiusIndex = FindNearestIndex(RuntimeTouchStickRadiusValues, snapshot.TouchLeftStickRadius);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_stick_radius"), (int i) => (RuntimeTouchStickRadiusValues[Math.Clamp(i, 0, RuntimeTouchStickRadiusValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchStickRadiusValues.Length - 1, touchStickRadiusIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchLeftStickRadius = RuntimeTouchStickRadiusValues[Math.Clamp(i, 0, RuntimeTouchStickRadiusValues.Length - 1)];
+			});
+		}));
+
+		int touchButtonRadiusIndex = FindNearestIndex(RuntimeTouchButtonRadiusValues, snapshot.TouchButtonRadius);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_button_radius"), (int i) => (RuntimeTouchButtonRadiusValues[Math.Clamp(i, 0, RuntimeTouchButtonRadiusValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchButtonRadiusValues.Length - 1, touchButtonRadiusIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchButtonRadius = RuntimeTouchButtonRadiusValues[Math.Clamp(i, 0, RuntimeTouchButtonRadiusValues.Length - 1)];
+			});
+		}));
+
+		int touchSpacingIndex = FindNearestIndex(RuntimeTouchSpacingValues, snapshot.TouchActionSpacing);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_spacing"), (int i) => "x" + RuntimeTouchSpacingValues[Math.Clamp(i, 0, RuntimeTouchSpacingValues.Length - 1)].ToString("0.##", CultureInfo.InvariantCulture), 0, RuntimeTouchSpacingValues.Length - 1, touchSpacingIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchActionSpacing = RuntimeTouchSpacingValues[Math.Clamp(i, 0, RuntimeTouchSpacingValues.Length - 1)];
+			});
+		}));
+
+		int touchLeftXIndex = FindNearestIndex(RuntimeTouchLeftXValues, snapshot.TouchLeftStickX);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_left_x"), (int i) => (RuntimeTouchLeftXValues[Math.Clamp(i, 0, RuntimeTouchLeftXValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchLeftXValues.Length - 1, touchLeftXIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchLeftStickX = RuntimeTouchLeftXValues[Math.Clamp(i, 0, RuntimeTouchLeftXValues.Length - 1)];
+			});
+		}));
+
+		int touchLeftYIndex = FindNearestIndex(RuntimeTouchLeftYValues, snapshot.TouchLeftStickY);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_left_y"), (int i) => (RuntimeTouchLeftYValues[Math.Clamp(i, 0, RuntimeTouchLeftYValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchLeftYValues.Length - 1, touchLeftYIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchLeftStickY = RuntimeTouchLeftYValues[Math.Clamp(i, 0, RuntimeTouchLeftYValues.Length - 1)];
+			});
+		}));
+
+		int touchActionXIndex = FindNearestIndex(RuntimeTouchActionXValues, snapshot.TouchActionX);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_action_x"), (int i) => (RuntimeTouchActionXValues[Math.Clamp(i, 0, RuntimeTouchActionXValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchActionXValues.Length - 1, touchActionXIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchActionX = RuntimeTouchActionXValues[Math.Clamp(i, 0, RuntimeTouchActionXValues.Length - 1)];
+			});
+		}));
+
+		int touchActionYIndex = FindNearestIndex(RuntimeTouchActionYValues, snapshot.TouchActionY);
+		menu.Add(new TextMenu.Slider(RuntimeText("runtime_touch_action_y"), (int i) => (RuntimeTouchActionYValues[Math.Clamp(i, 0, RuntimeTouchActionYValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchActionYValues.Length - 1, touchActionYIndex).Change(delegate(int i)
+		{
+			ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
+			{
+				update.TouchActionY = RuntimeTouchActionYValues[Math.Clamp(i, 0, RuntimeTouchActionYValues.Length - 1)];
+			});
+		}));
 	}
 
 	private static void ApplyRuntimeUpdate(Action<RuntimeUiConfigUpdate> configure)
@@ -428,6 +596,24 @@ public static class MenuOptions
 				"runtime_overlay_update" => "Atualizacao do Overlay", 
 				"runtime_overlay_background" => "Fundo do Overlay", 
 				"runtime_overlay_padding" => "Padding do Overlay", 
+				"runtime_touch" => "CONTROLES TOUCH", 
+				"runtime_touch_enabled" => "Touch Habilitado", 
+				"runtime_touch_gameplay_only" => "Touch so no Mapa", 
+				"runtime_touch_auto_disable" => "Auto desativar com HW", 
+				"runtime_touch_menu_tap" => "Toque para Menus/Mapas", 
+				"runtime_touch_dpad" => "Mostrar D-Pad", 
+				"runtime_touch_shoulders" => "Mostrar LB/RB/LT/RT", 
+				"runtime_touch_start_select" => "Mostrar Start/Back", 
+				"runtime_touch_opacity" => "Opacidade do Touch", 
+				"runtime_touch_scale" => "Escala do Touch", 
+				"runtime_touch_deadzone" => "Deadzone do Analogo", 
+				"runtime_touch_stick_radius" => "Tamanho do Analogo", 
+				"runtime_touch_button_radius" => "Tamanho dos Botoes", 
+				"runtime_touch_spacing" => "Espacamento ABXY", 
+				"runtime_touch_left_x" => "Posicao X do Analogo", 
+				"runtime_touch_left_y" => "Posicao Y do Analogo", 
+				"runtime_touch_action_x" => "Posicao X dos Botoes", 
+				"runtime_touch_action_y" => "Posicao Y dos Botoes", 
 				"runtime_value_fit" => "Ajustar", 
 				"runtime_value_fill" => "Preencher", 
 				"runtime_value_stretch" => "Esticar", 
@@ -638,6 +824,24 @@ public static class MenuOptions
 				"runtime_overlay_update" => "Overlay Refresh", 
 				"runtime_overlay_background" => "Overlay Background", 
 				"runtime_overlay_padding" => "Overlay Padding", 
+				"runtime_touch" => "TOUCH CONTROLS", 
+				"runtime_touch_enabled" => "Touch Enabled", 
+				"runtime_touch_gameplay_only" => "Touch in Gameplay Only", 
+				"runtime_touch_auto_disable" => "Auto Disable on Hardware", 
+				"runtime_touch_menu_tap" => "Tap Navigation in Menus", 
+				"runtime_touch_dpad" => "Show D-Pad", 
+				"runtime_touch_shoulders" => "Show LB/RB/LT/RT", 
+				"runtime_touch_start_select" => "Show Start/Back", 
+				"runtime_touch_opacity" => "Touch Opacity", 
+				"runtime_touch_scale" => "Touch Scale", 
+				"runtime_touch_deadzone" => "Stick Deadzone", 
+				"runtime_touch_stick_radius" => "Stick Radius", 
+				"runtime_touch_button_radius" => "Button Radius", 
+				"runtime_touch_spacing" => "ABXY Spacing", 
+				"runtime_touch_left_x" => "Left Stick X", 
+				"runtime_touch_left_y" => "Left Stick Y", 
+				"runtime_touch_action_x" => "Face Buttons X", 
+				"runtime_touch_action_y" => "Face Buttons Y", 
 				"runtime_value_fit" => "Fit", 
 				"runtime_value_fill" => "Fill", 
 				"runtime_value_stretch" => "Stretch", 

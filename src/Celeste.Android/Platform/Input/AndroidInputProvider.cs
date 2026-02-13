@@ -18,7 +18,7 @@ public sealed class AndroidInputProvider : IInputProvider
     {
         _logger = logger;
         CurrentInputSummary = "GamePad=Unknown Keyboard=Unknown";
-        _logger.Log(LogLevel.Info, "INPUT", "Input provider created (gamepad + keyboard only, no touch mappings)");
+        _logger.Log(LogLevel.Info, "INPUT", "Input provider created (hardware keyboard/gamepad). Touch is handled by runtime touch controller.");
     }
 
     public string CurrentInputSummary { get; private set; }

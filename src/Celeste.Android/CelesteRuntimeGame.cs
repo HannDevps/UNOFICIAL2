@@ -4,6 +4,7 @@ using System.Globalization;
 using Celeste.Android.Platform.Configuration;
 using Celeste.Android.Platform.Diagnostics;
 using Celeste.Android.Platform.Fullscreen;
+using Celeste.Android.Platform.Input;
 using Celeste.Android.Platform.Lifecycle;
 using Celeste.Android.Platform.Rendering;
 using Celeste.Core.Platform.Interop;
@@ -26,6 +27,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
     private readonly bool _aggressiveGc;
     private readonly RuntimeGameConfigSource _gameConfigSource;
     private readonly RuntimeOverlayConfigSource _overlayConfigSource;
+    private readonly AndroidTouchController? _touchController;
     private readonly BitmapFallbackFont _overlayFallbackFont = new();
 
     private DateTime _lastHeartbeatUtc;
@@ -45,18 +47,20 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
     private int _lastAppliedBackBufferHeight;
     private string _lastGraphicsConfigFingerprint = string.Empty;
 
-    public CelesteRuntimeGame(PlatformServices services, ImmersiveFullscreenController fullscreen, global::Android.App.Activity activity, string activeAbi)
+    public CelesteRuntimeGame(PlatformServices services, ImmersiveFullscreenController fullscreen, global::Android.App.Activity activity, string activeAbi, AndroidTouchController? touchController)
     {
         _services = services;
         _fullscreen = fullscreen;
         _activity = activity;
         _activeAbi = activeAbi;
+        _touchController = touchController;
         _lowMemoryMode = AndroidRuntimePolicy.IsLowMemoryModeEnabled();
         _aggressiveGc = AndroidRuntimePolicy.IsAggressiveGarbageCollectionEnabled();
         _gameConfigSource = new RuntimeGameConfigSource(_services.Paths, _services.Logger);
         _overlayConfigSource = new RuntimeOverlayConfigSource(_services.Paths, _services.Logger);
         _gameConfig = _gameConfigSource.Current;
         _overlayConfig = _overlayConfigSource.Current;
+        _touchController?.ApplyConfig(_gameConfig);
 
         AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
         ApplyRuntimeTuning("CTOR");
@@ -108,6 +112,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             }
 
             RefreshOverlaySnapshot(force: true);
+            _touchController?.ApplyConfig(_gameConfig);
             _services.Logger.Log(LogLevel.Info, "RUNTIME", "LoadContent done", context: BuildRuntimeContext("LOADCONTENT_DONE"));
             AndroidCrashReporter.LogMemoryPressure(_services.Logger, "Runtime LoadContent done", BuildRuntimeContext("LOADCONTENT_MEMORY"), LogLevel.Info);
         }
@@ -143,6 +148,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
         try
         {
             base.Draw(gameTime);
+            DrawTouchControls();
             DrawRuntimeOverlay();
         }
         catch (Exception exception)
@@ -340,6 +346,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             }
 
             AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
+            _touchController?.ApplyConfig(_gameConfig);
             ApplyGraphicsConfiguration("HotReload");
             ApplyRuntimeTuning("HotReload");
         }
@@ -364,6 +371,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             }
 
             AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
+            _touchController?.ApplyConfig(_gameConfig);
         }
 
         bool overlayChanged = _overlayConfigSource.Reload(force, context);
@@ -570,7 +578,24 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             OverlayFontScale = _overlayConfig.FontScale,
             OverlayUpdateIntervalMs = _overlayConfig.UpdateIntervalMs,
             OverlayBackground = _overlayConfig.Background,
-            OverlayPadding = _overlayConfig.Padding
+            OverlayPadding = _overlayConfig.Padding,
+            TouchEnabled = _gameConfig.TouchEnabled,
+            TouchGameplayOnly = _gameConfig.TouchGameplayOnly,
+            TouchAutoDisableOnExternalInput = _gameConfig.TouchAutoDisableOnExternalInput,
+            TouchTapMenuNavigation = _gameConfig.TouchTapMenuNavigation,
+            TouchEnableShoulders = _gameConfig.TouchEnableShoulders,
+            TouchEnableDpad = _gameConfig.TouchEnableDpad,
+            TouchEnableStartSelect = _gameConfig.TouchEnableStartSelect,
+            TouchOpacity = _gameConfig.TouchOpacity,
+            TouchScale = _gameConfig.TouchScale,
+            TouchLeftStickX = _gameConfig.TouchLeftStickX,
+            TouchLeftStickY = _gameConfig.TouchLeftStickY,
+            TouchLeftStickRadius = _gameConfig.TouchLeftStickRadius,
+            TouchLeftStickDeadzone = _gameConfig.TouchLeftStickDeadzone,
+            TouchActionX = _gameConfig.TouchActionX,
+            TouchActionY = _gameConfig.TouchActionY,
+            TouchButtonRadius = _gameConfig.TouchButtonRadius,
+            TouchActionSpacing = _gameConfig.TouchActionSpacing
         };
     }
 
@@ -670,6 +695,148 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             gameChanged = true;
         }
 
+        if (update.TouchEnabled.HasValue && _gameConfig.TouchEnabled != update.TouchEnabled.Value)
+        {
+            _gameConfig.TouchEnabled = update.TouchEnabled.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchGameplayOnly.HasValue && _gameConfig.TouchGameplayOnly != update.TouchGameplayOnly.Value)
+        {
+            _gameConfig.TouchGameplayOnly = update.TouchGameplayOnly.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchAutoDisableOnExternalInput.HasValue && _gameConfig.TouchAutoDisableOnExternalInput != update.TouchAutoDisableOnExternalInput.Value)
+        {
+            _gameConfig.TouchAutoDisableOnExternalInput = update.TouchAutoDisableOnExternalInput.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchTapMenuNavigation.HasValue && _gameConfig.TouchTapMenuNavigation != update.TouchTapMenuNavigation.Value)
+        {
+            _gameConfig.TouchTapMenuNavigation = update.TouchTapMenuNavigation.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchEnableShoulders.HasValue && _gameConfig.TouchEnableShoulders != update.TouchEnableShoulders.Value)
+        {
+            _gameConfig.TouchEnableShoulders = update.TouchEnableShoulders.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchEnableDpad.HasValue && _gameConfig.TouchEnableDpad != update.TouchEnableDpad.Value)
+        {
+            _gameConfig.TouchEnableDpad = update.TouchEnableDpad.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchEnableStartSelect.HasValue && _gameConfig.TouchEnableStartSelect != update.TouchEnableStartSelect.Value)
+        {
+            _gameConfig.TouchEnableStartSelect = update.TouchEnableStartSelect.Value;
+            gameChanged = true;
+        }
+
+        if (update.TouchOpacity.HasValue)
+        {
+            float opacity = Math.Clamp(update.TouchOpacity.Value, 0.15f, 1f);
+            if (Math.Abs(_gameConfig.TouchOpacity - opacity) > 0.0001f)
+            {
+                _gameConfig.TouchOpacity = opacity;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchScale.HasValue)
+        {
+            float scale = Math.Clamp(update.TouchScale.Value, 0.65f, 1.8f);
+            if (Math.Abs(_gameConfig.TouchScale - scale) > 0.0001f)
+            {
+                _gameConfig.TouchScale = scale;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchLeftStickX.HasValue)
+        {
+            float touchLeftX = Math.Clamp(update.TouchLeftStickX.Value, 0.06f, 0.45f);
+            if (Math.Abs(_gameConfig.TouchLeftStickX - touchLeftX) > 0.0001f)
+            {
+                _gameConfig.TouchLeftStickX = touchLeftX;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchLeftStickY.HasValue)
+        {
+            float touchLeftY = Math.Clamp(update.TouchLeftStickY.Value, 0.4f, 0.95f);
+            if (Math.Abs(_gameConfig.TouchLeftStickY - touchLeftY) > 0.0001f)
+            {
+                _gameConfig.TouchLeftStickY = touchLeftY;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchLeftStickRadius.HasValue)
+        {
+            float touchLeftRadius = Math.Clamp(update.TouchLeftStickRadius.Value, 0.08f, 0.2f);
+            if (Math.Abs(_gameConfig.TouchLeftStickRadius - touchLeftRadius) > 0.0001f)
+            {
+                _gameConfig.TouchLeftStickRadius = touchLeftRadius;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchLeftStickDeadzone.HasValue)
+        {
+            float touchDeadzone = Math.Clamp(update.TouchLeftStickDeadzone.Value, 0.05f, 0.7f);
+            if (Math.Abs(_gameConfig.TouchLeftStickDeadzone - touchDeadzone) > 0.0001f)
+            {
+                _gameConfig.TouchLeftStickDeadzone = touchDeadzone;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchActionX.HasValue)
+        {
+            float touchActionX = Math.Clamp(update.TouchActionX.Value, 0.52f, 0.95f);
+            if (Math.Abs(_gameConfig.TouchActionX - touchActionX) > 0.0001f)
+            {
+                _gameConfig.TouchActionX = touchActionX;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchActionY.HasValue)
+        {
+            float touchActionY = Math.Clamp(update.TouchActionY.Value, 0.4f, 0.95f);
+            if (Math.Abs(_gameConfig.TouchActionY - touchActionY) > 0.0001f)
+            {
+                _gameConfig.TouchActionY = touchActionY;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchButtonRadius.HasValue)
+        {
+            float touchButtonRadius = Math.Clamp(update.TouchButtonRadius.Value, 0.05f, 0.14f);
+            if (Math.Abs(_gameConfig.TouchButtonRadius - touchButtonRadius) > 0.0001f)
+            {
+                _gameConfig.TouchButtonRadius = touchButtonRadius;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchActionSpacing.HasValue)
+        {
+            float touchActionSpacing = Math.Clamp(update.TouchActionSpacing.Value, 1.05f, 2f);
+            if (Math.Abs(_gameConfig.TouchActionSpacing - touchActionSpacing) > 0.0001f)
+            {
+                _gameConfig.TouchActionSpacing = touchActionSpacing;
+                gameChanged = true;
+            }
+        }
+
         if (update.ShowFps.HasValue && _overlayConfig.ShowFps != update.ShowFps.Value)
         {
             _overlayConfig.ShowFps = update.ShowFps.Value;
@@ -755,6 +922,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
         {
             _gameConfigSource.Save(_gameConfig, "runtime_menu");
             AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
+            _touchController?.ApplyConfig(_gameConfig);
             ApplyGraphicsConfiguration("RuntimeMenu");
             ApplyRuntimeTuning("RuntimeMenu");
         }
@@ -937,6 +1105,16 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
         }
 
         _overlayLines = lines.ToArray();
+    }
+
+    private void DrawTouchControls()
+    {
+        if (_touchController == null || _overlaySpriteBatch == null || _overlayPixel == null)
+        {
+            return;
+        }
+
+        _touchController.Draw(_overlaySpriteBatch, GraphicsDevice, _overlayPixel, _overlayFont, _overlayFallbackFont);
     }
 
     private void DrawRuntimeOverlay()

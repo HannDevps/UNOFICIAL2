@@ -21,6 +21,10 @@ public static class MInput
 		{
 			PreviousState = CurrentState;
 			CurrentState = Microsoft.Xna.Framework.Input.Keyboard.GetState();
+			if (MInput.KeyboardStateOverride != null)
+			{
+				CurrentState = MInput.KeyboardStateOverride(CurrentState);
+			}
 		}
 
 		internal void UpdateNull()
@@ -310,6 +314,10 @@ public static class MInput
 		{
 			PreviousState = CurrentState;
 			CurrentState = Microsoft.Xna.Framework.Input.Mouse.GetState();
+			if (MInput.MouseStateOverride != null)
+			{
+				CurrentState = MInput.MouseStateOverride(CurrentState);
+			}
 		}
 
 		internal void UpdateNull()
@@ -1349,6 +1357,10 @@ public static class MInput
 	public static bool ControllerHasFocus = false;
 
 	public static bool IsControllerFocused = false;
+
+	public static Func<KeyboardState, KeyboardState> KeyboardStateOverride;
+
+	public static Func<MouseState, MouseState> MouseStateOverride;
 
 	public static KeyboardData Keyboard { get; private set; }
 
