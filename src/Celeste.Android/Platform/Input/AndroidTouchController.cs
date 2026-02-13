@@ -904,6 +904,13 @@ public sealed class AndroidTouchController : IDisposable
             return;
         }
 
+        TryLoadPromptTexturesFromAssets(graphicsDevice);
+        if (_promptTextures.Count > 0)
+        {
+            _logger.Log(LogLevel.Info, "INPUT", "Touch prompt textures loaded from Android assets", context: $"profile={_config.TouchButtonProfile}; style={_config.TouchPromptStyle}; count={_promptTextures.Count}");
+            return;
+        }
+
         _logger.Log(LogLevel.Warn, "INPUT", "Touch prompt pack not found. Falling back to generated touch buttons.", context: $"profile={_config.TouchButtonProfile}; style={_config.TouchPromptStyle}");
     }
 
@@ -945,6 +952,54 @@ public sealed class AndroidTouchController : IDisposable
             catch
             {
             }
+        }
+    }
+
+    private void TryLoadPromptTexturesFromAssets(GraphicsDevice graphicsDevice)
+    {
+        Dictionary<string, string[]> map = _config.TouchButtonProfile == RuntimeTouchButtonProfiles.PlayStation
+            ? BuildPlayStationPromptPathMap()
+            : BuildXboxPromptPathMap(_config.TouchPromptStyle);
+
+        foreach ((string key, string[] candidates) in map)
+        {
+            if (_promptTextures.ContainsKey(key))
+            {
+                continue;
+            }
+
+            for (int i = 0; i < candidates.Length; i++)
+            {
+                string relative = candidates[i];
+                if (TryLoadTextureFromAndroidAsset(graphicsDevice, "InputPromptsPack_V7_UnrealPack/Source/" + relative, out Texture2D texture)
+                    || TryLoadTextureFromAndroidAsset(graphicsDevice, relative, out texture))
+                {
+                    _promptTextures[key] = texture;
+                    break;
+                }
+            }
+        }
+    }
+
+    private static bool TryLoadTextureFromAndroidAsset(GraphicsDevice graphicsDevice, string assetPath, out Texture2D texture)
+    {
+        texture = null!;
+
+        try
+        {
+            var assets = global::Android.App.Application.Context?.Assets;
+            if (assets == null)
+            {
+                return false;
+            }
+
+            using Stream stream = assets.Open(assetPath);
+            texture = Texture2D.FromStream(graphicsDevice, stream);
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 

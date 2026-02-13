@@ -18,6 +18,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AndroidAsset Include="..\..\InputPromptsPack_V7_UnrealPack\Source\XGamepad\Alt\*.png"
+                  Link="InputPromptsPack_V7_UnrealPack/Source/XGamepad/Alt/%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\InputPromptsPack_V7_UnrealPack\Source\XGamepad\Alt 2\*.png"
+                  Link="InputPromptsPack_V7_UnrealPack/Source/XGamepad/Alt 2/%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\InputPromptsPack_V7_UnrealPack\Source\P4Gamepad\Alt\*.png"
+                  Link="InputPromptsPack_V7_UnrealPack/Source/P4Gamepad/Alt/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AndroidNativeLibrary Include="..\..\fmodstudioapi20312android\api\core\lib\armeabi-v7a\libfmod.so" />
     <AndroidNativeLibrary Include="..\..\fmodstudioapi20312android\api\core\lib\arm64-v8a\libfmod.so" />
     <AndroidNativeLibrary Include="..\..\fmodstudioapi20312android\api\studio\lib\armeabi-v7a\libfmodstudio.so" />
