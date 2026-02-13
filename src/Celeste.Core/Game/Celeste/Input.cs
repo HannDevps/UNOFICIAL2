@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
@@ -66,11 +67,85 @@ public static class Input
 
 	public static string OverrideInputPrefix = null;
 
+	private static string preferredControllerPrefix = "xb1";
+
+	private static string preferredControllerPromptStyle = "alt";
+
 	private static Dictionary<Keys, string> keyNameLookup = new Dictionary<Keys, string>();
 
 	private static Dictionary<Buttons, string> buttonNameLookup = new Dictionary<Buttons, string>();
 
 	private static Dictionary<string, Dictionary<string, string>> guiPathLookup = new Dictionary<string, Dictionary<string, string>>();
+
+	private static readonly Dictionary<string, MTexture> externalPromptLookup = new Dictionary<string, MTexture>(StringComparer.Ordinal);
+
+	private static readonly HashSet<string> externalPromptMisses = new HashSet<string>(StringComparer.Ordinal);
+
+	private static readonly Dictionary<string, string[]> xboxAltPromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
+	{
+		{ "A", new string[2] { "XGamepad/Alt/T_X_A_Color_Alt.png", "XGamepad/Alt/T_X_A_White_Alt.png" } },
+		{ "B", new string[2] { "XGamepad/Alt/T_X_B_Color_Alt.png", "XGamepad/Alt/T_X_B_White_Alt.png" } },
+		{ "X", new string[2] { "XGamepad/Alt/T_X_X_Color_Alt.png", "XGamepad/Alt/T_X_X_White_Alt.png" } },
+		{ "Y", new string[2] { "XGamepad/Alt/T_X_Y_Color_Alt.png", "XGamepad/Alt/T_X_Y_White_Alt.png" } },
+		{ "LeftShoulder", new string[1] { "XGamepad/Alt/T_X_LB_Alt.png" } },
+		{ "RightShoulder", new string[1] { "XGamepad/Alt/T_X_RB_Alt.png" } },
+		{ "LeftTrigger", new string[1] { "XGamepad/Alt/T_X_LT_Alt.png" } },
+		{ "RightTrigger", new string[1] { "XGamepad/Alt/T_X_RT_Alt.png" } },
+		{ "DPadLeft", new string[1] { "XGamepad/Alt/T_X_Dpad_Left_Alt.png" } },
+		{ "DPadRight", new string[1] { "XGamepad/Alt/T_X_Dpad_Right_Alt.png" } },
+		{ "DPadUp", new string[1] { "XGamepad/Alt/T_X_Dpad_Up_Alt.png" } },
+		{ "DPadDown", new string[1] { "XGamepad/Alt/T_X_Dpad_Down_Alt.png" } },
+		{ "Start", new string[2] { "XGamepad/Alt/T_X_Share_Alt-1.png", "XGamepad/Alt/T_X_Share_Alt.png" } },
+		{ "Back", new string[1] { "XGamepad/Alt/T_X_Share_Alt.png" } },
+		{ "LeftThumbstickLeft", new string[1] { "XGamepad/Alt/T_X_L_Left_Alt.png" } },
+		{ "LeftThumbstickRight", new string[1] { "XGamepad/Alt/T_X_L_Right_Alt.png" } },
+		{ "LeftThumbstickUp", new string[1] { "XGamepad/Alt/T_X_L_UP_Alt.png" } },
+		{ "LeftThumbstickDown", new string[1] { "XGamepad/Alt/T_X_L_Down_Alt.png" } }
+	};
+
+	private static readonly Dictionary<string, string[]> xboxAlt2PromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
+	{
+		{ "A", new string[2] { "XGamepad/Alt 2/T_X_A_Color_Alt_2.png", "XGamepad/Alt 2/T_X_A_White_Alt_2.png" } },
+		{ "B", new string[2] { "XGamepad/Alt 2/T_X_B_Color_Alt_2.png", "XGamepad/Alt 2/T_X_B_White_Alt_2.png" } },
+		{ "X", new string[2] { "XGamepad/Alt 2/T_X_X_Color_Alt_2.png", "XGamepad/Alt 2/T_X_X_White_Alt_2.png" } },
+		{ "Y", new string[2] { "XGamepad/Alt 2/T_X_Y_Color_Alt_2.png", "XGamepad/Alt 2/T_X_Y_White_Alt_2.png" } },
+		{ "LeftShoulder", new string[1] { "XGamepad/Alt 2/T_X_LB_Alt_2.png" } },
+		{ "RightShoulder", new string[1] { "XGamepad/Alt 2/T_X_RB_Alt_2.png" } },
+		{ "LeftTrigger", new string[1] { "XGamepad/Alt 2/T_X_LT_Alt_2.png" } },
+		{ "RightTrigger", new string[1] { "XGamepad/Alt 2/T_X_RT_Alt_2.png" } },
+		{ "DPadLeft", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Left_Alt_2.png" } },
+		{ "DPadRight", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Right_Alt_2.png" } },
+		{ "DPadUp", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Up_Alt_2.png" } },
+		{ "DPadDown", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Down_Alt_2.png" } },
+		{ "Start", new string[2] { "XGamepad/Alt 2/T_X_Share_Alt_2-1.png", "XGamepad/Alt 2/T_X_Share_Alt_2.png" } },
+		{ "Back", new string[1] { "XGamepad/Alt 2/T_X_Share_Alt_2.png" } },
+		{ "LeftThumbstickLeft", new string[1] { "XGamepad/Alt 2/T_X_L_Left_Alt_2.png" } },
+		{ "LeftThumbstickRight", new string[1] { "XGamepad/Alt 2/T_X_L_Right_Alt_2.png" } },
+		{ "LeftThumbstickUp", new string[1] { "XGamepad/Alt 2/T_X_L_UP_Alt_2.png" } },
+		{ "LeftThumbstickDown", new string[1] { "XGamepad/Alt 2/T_X_L_Down_Alt_2.png" } }
+	};
+
+	private static readonly Dictionary<string, string[]> playStationAltPromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
+	{
+		{ "A", new string[2] { "P4Gamepad/Alt/T_P4_Cross_Color_Alt.png", "P4Gamepad/Alt/T_P4_Cross_Alt.png" } },
+		{ "B", new string[2] { "P4Gamepad/Alt/T_P4_Circle_Color_Alt.png", "P4Gamepad/Alt/T_P4_Circle_Alt.png" } },
+		{ "X", new string[2] { "P4Gamepad/Alt/T_P4_Square_Color_Alt.png", "P4Gamepad/Alt/T_P4_Square_Alt.png" } },
+		{ "Y", new string[2] { "P4Gamepad/Alt/T_P4_Triangle_Color_Alt.png", "P4Gamepad/Alt/T_P4_Triangle_Alt.png" } },
+		{ "LeftShoulder", new string[1] { "P4Gamepad/Alt/T_P4_L1_Alt.png" } },
+		{ "RightShoulder", new string[1] { "P4Gamepad/Alt/T_P4_R1_Alt.png" } },
+		{ "LeftTrigger", new string[1] { "P4Gamepad/Alt/T_P4_L2_Alt.png" } },
+		{ "RightTrigger", new string[1] { "P4Gamepad/Alt/T_P4_R2_Alt.png" } },
+		{ "DPadLeft", new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Left_Alt.png" } },
+		{ "DPadRight", new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Right_Alt.png" } },
+		{ "DPadUp", new string[2] { "P4Gamepad/Alt/T_P4_Dpad_UP_Alt.png", "P4Gamepad/Alt/T_P4_Dpad_Up_Alt.png" } },
+		{ "DPadDown", new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Down_Alt.png" } },
+		{ "Start", new string[1] { "P4Gamepad/Alt/T_P4_Options_Alt.png" } },
+		{ "Back", new string[1] { "P4Gamepad/Alt/T_P4_Share_Alt.png" } },
+		{ "LeftThumbstickLeft", new string[1] { "P4Gamepad/Alt/T_P4_L_Left_Alt.png" } },
+		{ "LeftThumbstickRight", new string[1] { "P4Gamepad/Alt/T_P4_L_Right_Alt.png" } },
+		{ "LeftThumbstickUp", new string[1] { "P4Gamepad/Alt/T_P4_L_UP_Alt.png" } },
+		{ "LeftThumbstickDown", new string[1] { "P4Gamepad/Alt/T_P4_L_Down_Alt.png" } }
+	};
 
 	private static float[] rumbleStrengths = new float[4] { 0.15f, 0.4f, 1f, 0.05f };
 
@@ -378,12 +453,47 @@ public static class Input
 		{
 			return OverrideInputPrefix;
 		}
-		bool flag = false;
 		if ((mode != PrefixMode.Latest) ? MInput.GamePads[Gamepad].Attached : MInput.ControllerHasFocus)
 		{
-			return "xb1";
+			return ResolveControllerPrefix();
 		}
 		return "keyboard";
+	}
+
+	public static void SetPreferredControllerPrefix(string prefix)
+	{
+		string old = ResolveControllerPrefix();
+		if (string.IsNullOrWhiteSpace(prefix))
+		{
+			preferredControllerPrefix = "xb1";
+		}
+		else
+		{
+			preferredControllerPrefix = prefix.Trim();
+		}
+
+		if (!string.Equals(old, ResolveControllerPrefix(), StringComparison.OrdinalIgnoreCase))
+		{
+			ResetExternalPromptCache();
+		}
+	}
+
+	public static void SetPreferredControllerPromptStyle(string style)
+	{
+		string old = ResolveControllerPromptStyle();
+		if (string.IsNullOrWhiteSpace(style))
+		{
+			preferredControllerPromptStyle = "alt";
+		}
+		else
+		{
+			preferredControllerPromptStyle = style.Trim().ToLowerInvariant();
+		}
+
+		if (!string.Equals(old, ResolveControllerPromptStyle(), StringComparison.OrdinalIgnoreCase))
+		{
+			ResetExternalPromptCache();
+		}
 	}
 
 	public static bool GuiInputController(PrefixMode mode = PrefixMode.Latest)
@@ -426,7 +536,7 @@ public static class Input
 
 	public static MTexture GuiSingleButton(Buttons button, PrefixMode mode = PrefixMode.Latest, string fallback = "controls/keyboard/oemquestion")
 	{
-		string prefix = ((!GuiInputController(mode)) ? "xb1" : GuiInputPrefix(mode));
+		string prefix = ((!GuiInputController(mode)) ? ResolveControllerPrefix() : GuiInputPrefix(mode));
 		string value = "";
 		if (!buttonNameLookup.TryGetValue(button, out value))
 		{
@@ -487,6 +597,11 @@ public static class Input
 
 	private static MTexture GuiTexture(string prefix, string input)
 	{
+		if (TryGetExternalPromptTexture(prefix, input, out var externalTexture))
+		{
+			return externalTexture;
+		}
+
 		if (!guiPathLookup.TryGetValue(prefix, out var value))
 		{
 			guiPathLookup.Add(prefix, value = new Dictionary<string, string>());
@@ -504,6 +619,156 @@ public static class Input
 			return null;
 		}
 		return GFX.Gui[value2];
+	}
+
+	private static string ResolveControllerPrefix()
+	{
+		if (string.IsNullOrWhiteSpace(preferredControllerPrefix))
+		{
+			return "xb1";
+		}
+		return preferredControllerPrefix;
+	}
+
+	private static string ResolveControllerPromptStyle()
+	{
+		if (string.IsNullOrWhiteSpace(preferredControllerPromptStyle))
+		{
+			return "alt";
+		}
+		return preferredControllerPromptStyle;
+	}
+
+	private static bool TryGetExternalPromptTexture(string prefix, string input, out MTexture texture)
+	{
+		texture = null;
+		if (string.IsNullOrWhiteSpace(prefix) || string.IsNullOrWhiteSpace(input))
+		{
+			return false;
+		}
+
+		string normalizedPrefix = prefix.Trim();
+		if (!normalizedPrefix.Equals("xb1", StringComparison.OrdinalIgnoreCase) && !normalizedPrefix.Equals("ps4", StringComparison.OrdinalIgnoreCase))
+		{
+			return false;
+		}
+
+		string style = normalizedPrefix.Equals("xb1", StringComparison.OrdinalIgnoreCase) ? ResolveControllerPromptStyle() : "alt";
+		string cacheKey = normalizedPrefix.ToLowerInvariant() + "|" + style + "|" + input;
+
+		if (externalPromptLookup.TryGetValue(cacheKey, out texture))
+		{
+			return texture != null;
+		}
+
+		if (externalPromptMisses.Contains(cacheKey))
+		{
+			return false;
+		}
+
+		if (!TryGetPromptCandidates(normalizedPrefix, style, input, out string[] candidates) || candidates.Length <= 0)
+		{
+			externalPromptMisses.Add(cacheKey);
+			return false;
+		}
+
+		foreach (string root in EnumeratePromptSourceRoots())
+		{
+			if (!Directory.Exists(root))
+			{
+				continue;
+			}
+
+			for (int i = 0; i < candidates.Length; i++)
+			{
+				string relative = candidates[i].Replace('/', Path.DirectorySeparatorChar);
+				string fullPath = Path.Combine(root, relative);
+				if (!File.Exists(fullPath))
+				{
+					continue;
+				}
+
+				try
+				{
+					texture = new MTexture(VirtualContent.CreateTexture(fullPath));
+					externalPromptLookup[cacheKey] = texture;
+					return true;
+				}
+				catch
+				{
+				}
+			}
+		}
+
+		externalPromptMisses.Add(cacheKey);
+		return false;
+	}
+
+	private static bool TryGetPromptCandidates(string prefix, string style, string input, out string[] candidates)
+	{
+		candidates = null;
+		if (prefix.Equals("ps4", StringComparison.OrdinalIgnoreCase))
+		{
+			return playStationAltPromptLookup.TryGetValue(input, out candidates);
+		}
+
+		if (style.Equals("alt2", StringComparison.OrdinalIgnoreCase) || style.Equals("alt_2", StringComparison.OrdinalIgnoreCase) || style.Equals("alt 2", StringComparison.OrdinalIgnoreCase))
+		{
+			return xboxAlt2PromptLookup.TryGetValue(input, out candidates);
+		}
+
+		return xboxAltPromptLookup.TryGetValue(input, out candidates);
+	}
+
+	private static IEnumerable<string> EnumeratePromptSourceRoots()
+	{
+		var roots = new List<string>();
+		if (!string.IsNullOrWhiteSpace(Environment.CurrentDirectory))
+		{
+			DirectoryInfo directoryInfo = new DirectoryInfo(Environment.CurrentDirectory);
+			for (int i = 0; i < 6 && directoryInfo != null; i++)
+			{
+				roots.Add(Path.Combine(directoryInfo.FullName, "InputPromptsPack_V7_UnrealPack", "Source"));
+				roots.Add(Path.Combine(directoryInfo.FullName, "CELESTEPORT", "InputPromptsPack_V7_UnrealPack", "Source"));
+				directoryInfo = directoryInfo.Parent;
+			}
+		}
+
+		if (!string.IsNullOrWhiteSpace(AppContext.BaseDirectory))
+		{
+			roots.Add(Path.Combine(AppContext.BaseDirectory, "InputPromptsPack_V7_UnrealPack", "Source"));
+		}
+
+		if (!string.IsNullOrWhiteSpace(Engine.ContentDirectory))
+		{
+			roots.Add(Path.Combine(Engine.ContentDirectory, "InputPromptsPack_V7_UnrealPack", "Source"));
+		}
+
+		roots.Add(Path.Combine("/data/celeste.app/Files", "InputPromptsPack_V7_UnrealPack", "Source"));
+		roots.Add(Path.Combine("/data/celeste.app/Files/Config", "InputPromptsPack_V7_UnrealPack", "Source"));
+
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		for (int i = 0; i < roots.Count; i++)
+		{
+			string root = roots[i];
+			if (string.IsNullOrWhiteSpace(root) || !seen.Add(root))
+			{
+				continue;
+			}
+
+			yield return root;
+		}
+	}
+
+	private static void ResetExternalPromptCache()
+	{
+		foreach (MTexture value in externalPromptLookup.Values)
+		{
+			value?.Texture?.Dispose();
+		}
+
+		externalPromptLookup.Clear();
+		externalPromptMisses.Clear();
 	}
 
 	public static void SetLightbarColor(Color color)

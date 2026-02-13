@@ -61,6 +61,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
         _gameConfig = _gameConfigSource.Current;
         _overlayConfig = _overlayConfigSource.Current;
         _touchController?.ApplyConfig(_gameConfig);
+        ApplyInputPromptProfile();
 
         AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
         ApplyRuntimeTuning("CTOR");
@@ -113,6 +114,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
 
             RefreshOverlaySnapshot(force: true);
             _touchController?.ApplyConfig(_gameConfig);
+            ApplyInputPromptProfile();
             _services.Logger.Log(LogLevel.Info, "RUNTIME", "LoadContent done", context: BuildRuntimeContext("LOADCONTENT_DONE"));
             AndroidCrashReporter.LogMemoryPressure(_services.Logger, "Runtime LoadContent done", BuildRuntimeContext("LOADCONTENT_MEMORY"), LogLevel.Info);
         }
@@ -347,6 +349,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
 
             AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
             _touchController?.ApplyConfig(_gameConfig);
+            ApplyInputPromptProfile();
             ApplyGraphicsConfiguration("HotReload");
             ApplyRuntimeTuning("HotReload");
         }
@@ -372,6 +375,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
 
             AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
             _touchController?.ApplyConfig(_gameConfig);
+            ApplyInputPromptProfile();
         }
 
         bool overlayChanged = _overlayConfigSource.Reload(force, context);
@@ -579,6 +583,8 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             OverlayUpdateIntervalMs = _overlayConfig.UpdateIntervalMs,
             OverlayBackground = _overlayConfig.Background,
             OverlayPadding = _overlayConfig.Padding,
+            TouchButtonProfile = ToUiTouchButtonProfile(_gameConfig.TouchButtonProfile),
+            TouchPromptStyle = ToUiTouchPromptStyle(_gameConfig.TouchPromptStyle),
             TouchEnabled = _gameConfig.TouchEnabled,
             TouchGameplayOnly = _gameConfig.TouchGameplayOnly,
             TouchAutoDisableOnExternalInput = _gameConfig.TouchAutoDisableOnExternalInput,
@@ -592,6 +598,10 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             TouchLeftStickY = _gameConfig.TouchLeftStickY,
             TouchLeftStickRadius = _gameConfig.TouchLeftStickRadius,
             TouchLeftStickDeadzone = _gameConfig.TouchLeftStickDeadzone,
+            TouchDpadX = _gameConfig.TouchDpadX,
+            TouchDpadY = _gameConfig.TouchDpadY,
+            TouchShoulderY = _gameConfig.TouchShoulderY,
+            TouchStartSelectY = _gameConfig.TouchStartSelectY,
             TouchActionX = _gameConfig.TouchActionX,
             TouchActionY = _gameConfig.TouchActionY,
             TouchButtonRadius = _gameConfig.TouchButtonRadius,
@@ -695,6 +705,26 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             gameChanged = true;
         }
 
+        if (update.TouchButtonProfile.HasValue)
+        {
+            RuntimeTouchButtonProfiles touchButtonProfile = FromUiTouchButtonProfile(update.TouchButtonProfile.Value);
+            if (_gameConfig.TouchButtonProfile != touchButtonProfile)
+            {
+                _gameConfig.TouchButtonProfile = touchButtonProfile;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchPromptStyle.HasValue)
+        {
+            RuntimeTouchPromptStyles touchPromptStyle = FromUiTouchPromptStyle(update.TouchPromptStyle.Value);
+            if (_gameConfig.TouchPromptStyle != touchPromptStyle)
+            {
+                _gameConfig.TouchPromptStyle = touchPromptStyle;
+                gameChanged = true;
+            }
+        }
+
         if (update.TouchEnabled.HasValue && _gameConfig.TouchEnabled != update.TouchEnabled.Value)
         {
             _gameConfig.TouchEnabled = update.TouchEnabled.Value;
@@ -793,6 +823,46 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             if (Math.Abs(_gameConfig.TouchLeftStickDeadzone - touchDeadzone) > 0.0001f)
             {
                 _gameConfig.TouchLeftStickDeadzone = touchDeadzone;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchDpadX.HasValue)
+        {
+            float touchDpadX = Math.Clamp(update.TouchDpadX.Value, 0.06f, 0.45f);
+            if (Math.Abs(_gameConfig.TouchDpadX - touchDpadX) > 0.0001f)
+            {
+                _gameConfig.TouchDpadX = touchDpadX;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchDpadY.HasValue)
+        {
+            float touchDpadY = Math.Clamp(update.TouchDpadY.Value, 0.34f, 0.95f);
+            if (Math.Abs(_gameConfig.TouchDpadY - touchDpadY) > 0.0001f)
+            {
+                _gameConfig.TouchDpadY = touchDpadY;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchShoulderY.HasValue)
+        {
+            float touchShoulderY = Math.Clamp(update.TouchShoulderY.Value, 0.06f, 0.3f);
+            if (Math.Abs(_gameConfig.TouchShoulderY - touchShoulderY) > 0.0001f)
+            {
+                _gameConfig.TouchShoulderY = touchShoulderY;
+                gameChanged = true;
+            }
+        }
+
+        if (update.TouchStartSelectY.HasValue)
+        {
+            float touchStartSelectY = Math.Clamp(update.TouchStartSelectY.Value, 0.06f, 0.3f);
+            if (Math.Abs(_gameConfig.TouchStartSelectY - touchStartSelectY) > 0.0001f)
+            {
+                _gameConfig.TouchStartSelectY = touchStartSelectY;
                 gameChanged = true;
             }
         }
@@ -923,6 +993,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
             _gameConfigSource.Save(_gameConfig, "runtime_menu");
             AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, _gameConfig.ForceLegacyBlendStates);
             _touchController?.ApplyConfig(_gameConfig);
+            ApplyInputPromptProfile();
             ApplyGraphicsConfiguration("RuntimeMenu");
             ApplyRuntimeTuning("RuntimeMenu");
         }
@@ -954,6 +1025,60 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
         }
 
         return "60";
+    }
+
+    private void ApplyInputPromptProfile()
+    {
+        string prefix = _gameConfig.TouchButtonProfile switch
+        {
+            RuntimeTouchButtonProfiles.PlayStation => "ps4",
+            _ => "xb1",
+        };
+
+        string style = _gameConfig.TouchPromptStyle switch
+        {
+            RuntimeTouchPromptStyles.Alt2 => "alt2",
+            _ => "alt",
+        };
+
+        global::Celeste.Input.SetPreferredControllerPrefix(prefix);
+        global::Celeste.Input.SetPreferredControllerPromptStyle(style);
+    }
+
+    private static RuntimeUiTouchButtonProfiles ToUiTouchButtonProfile(RuntimeTouchButtonProfiles profile)
+    {
+        return profile switch
+        {
+            RuntimeTouchButtonProfiles.PlayStation => RuntimeUiTouchButtonProfiles.PlayStation,
+            _ => RuntimeUiTouchButtonProfiles.Xbox,
+        };
+    }
+
+    private static RuntimeTouchButtonProfiles FromUiTouchButtonProfile(RuntimeUiTouchButtonProfiles profile)
+    {
+        return profile switch
+        {
+            RuntimeUiTouchButtonProfiles.PlayStation => RuntimeTouchButtonProfiles.PlayStation,
+            _ => RuntimeTouchButtonProfiles.Xbox,
+        };
+    }
+
+    private static RuntimeUiTouchPromptStyles ToUiTouchPromptStyle(RuntimeTouchPromptStyles style)
+    {
+        return style switch
+        {
+            RuntimeTouchPromptStyles.Alt2 => RuntimeUiTouchPromptStyles.Alt2,
+            _ => RuntimeUiTouchPromptStyles.Alt,
+        };
+    }
+
+    private static RuntimeTouchPromptStyles FromUiTouchPromptStyle(RuntimeUiTouchPromptStyles style)
+    {
+        return style switch
+        {
+            RuntimeUiTouchPromptStyles.Alt2 => RuntimeTouchPromptStyles.Alt2,
+            _ => RuntimeTouchPromptStyles.Alt,
+        };
     }
 
     private static RuntimeUiAspectModes ToUiAspectMode(RuntimeAspectModes mode)

@@ -751,6 +751,18 @@ public class TextMenu : Entity
 
 	public bool AutoScroll = true;
 
+	private bool pointerScrollActive;
+
+	private float pointerScrollStartY;
+
+	private float pointerMenuStartY;
+
+	private float pointerScrollLastY;
+
+	private float pointerScrollVelocity;
+
+	private bool pointerScrollMomentum;
+
 	public Item Current
 	{
 		get
@@ -814,6 +826,18 @@ public class TextMenu : Entity
 			float min = (float)(Engine.Height - 150) - Height * Justify.Y;
 			float max = 150f + Height * Justify.Y;
 			return Calc.Clamp((float)(Engine.Height / 2) + Height * Justify.Y - GetYOffsetOf(Current), min, max);
+		}
+	}
+
+	private bool CanPointerScroll
+	{
+		get
+		{
+			if (!AutoScroll)
+			{
+				return false;
+			}
+			return Height > ScrollableMinSize;
 		}
 	}
 
@@ -1010,6 +1034,7 @@ public class TextMenu : Entity
 	public override void Update()
 	{
 		base.Update();
+		UpdatePointerScroll();
 		if (OnUpdate != null)
 		{
 			OnUpdate();
@@ -1095,13 +1120,102 @@ public class TextMenu : Entity
 		{
 			if (Height > ScrollableMinSize)
 			{
-				Position.Y += (ScrollTargetY - Position.Y) * (1f - (float)Math.Pow(0.009999999776482582, Engine.RawDeltaTime));
+				if (!pointerScrollActive && !pointerScrollMomentum)
+				{
+					Position.Y += (ScrollTargetY - Position.Y) * (1f - (float)Math.Pow(0.009999999776482582, Engine.RawDeltaTime));
+				}
 			}
 			else
 			{
 				Position.Y = 540f;
 			}
 		}
+	}
+
+	private void UpdatePointerScroll()
+	{
+		if (!CanPointerScroll)
+		{
+			pointerScrollActive = false;
+			pointerScrollMomentum = false;
+			pointerScrollVelocity = 0f;
+			return;
+		}
+
+		if (pointerScrollMomentum && !MInput.Mouse.CheckLeftButton)
+		{
+			float nextY = Position.Y + pointerScrollVelocity * Engine.RawDeltaTime;
+			float clampedY = ClampScrollableY(nextY);
+			Position.Y = clampedY;
+
+			if (Math.Abs(clampedY - nextY) > 0.01f)
+			{
+				pointerScrollVelocity = 0f;
+			}
+			else
+			{
+				pointerScrollVelocity *= (float)Math.Pow(0.005f, Engine.RawDeltaTime);
+			}
+
+			if (Math.Abs(pointerScrollVelocity) < 8f)
+			{
+				pointerScrollMomentum = false;
+				pointerScrollVelocity = 0f;
+			}
+		}
+
+		if (MInput.Mouse.PressedLeftButton)
+		{
+			pointerScrollStartY = MInput.Mouse.Y;
+			pointerMenuStartY = Position.Y;
+			pointerScrollLastY = MInput.Mouse.Y;
+			pointerScrollActive = false;
+			pointerScrollMomentum = false;
+			pointerScrollVelocity = 0f;
+		}
+
+		if (MInput.Mouse.CheckLeftButton)
+		{
+			float delta = MInput.Mouse.Y - pointerScrollStartY;
+			float frameDelta = MInput.Mouse.Y - pointerScrollLastY;
+			pointerScrollLastY = MInput.Mouse.Y;
+			if (!pointerScrollActive && Math.Abs(delta) > 10f)
+			{
+				pointerScrollActive = true;
+				pointerScrollMomentum = false;
+				pointerScrollVelocity = 0f;
+			}
+
+			if (pointerScrollActive)
+			{
+				Position.Y = ClampScrollableY(pointerMenuStartY + delta);
+				float dt = Math.Max(Engine.RawDeltaTime, 0.0001f);
+				float instantVelocity = frameDelta / dt;
+				pointerScrollVelocity = MathHelper.Lerp(pointerScrollVelocity, instantVelocity, 0.35f);
+			}
+		}
+
+		if (MInput.Mouse.ReleasedLeftButton)
+		{
+			if (pointerScrollActive && Math.Abs(pointerScrollVelocity) > 24f)
+			{
+				pointerScrollMomentum = true;
+			}
+			else
+			{
+				pointerScrollMomentum = false;
+				pointerScrollVelocity = 0f;
+			}
+
+			pointerScrollActive = false;
+		}
+	}
+
+	private float ClampScrollableY(float y)
+	{
+		float min = (float)(Engine.Height - 150) - Height * Justify.Y;
+		float max = 150f + Height * Justify.Y;
+		return Calc.Clamp(y, min, max);
 	}
 
 	public override void Render()

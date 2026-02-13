@@ -30,6 +30,18 @@ public enum RuntimeUiOverlayPositions
     BottomRight
 }
 
+public enum RuntimeUiTouchButtonProfiles
+{
+    Xbox,
+    PlayStation
+}
+
+public enum RuntimeUiTouchPromptStyles
+{
+    Alt,
+    Alt2
+}
+
 public sealed class RuntimeUiConfigSnapshot
 {
     public bool VSync { get; set; }
@@ -74,6 +86,10 @@ public sealed class RuntimeUiConfigSnapshot
 
     public int OverlayPadding { get; set; } = 8;
 
+    public RuntimeUiTouchButtonProfiles TouchButtonProfile { get; set; } = RuntimeUiTouchButtonProfiles.Xbox;
+
+    public RuntimeUiTouchPromptStyles TouchPromptStyle { get; set; } = RuntimeUiTouchPromptStyles.Alt;
+
     public bool TouchEnabled { get; set; } = true;
 
     public bool TouchGameplayOnly { get; set; } = true;
@@ -99,6 +115,14 @@ public sealed class RuntimeUiConfigSnapshot
     public float TouchLeftStickRadius { get; set; } = 0.12f;
 
     public float TouchLeftStickDeadzone { get; set; } = 0.26f;
+
+    public float TouchDpadX { get; set; } = 0.18f;
+
+    public float TouchDpadY { get; set; } = 0.56f;
+
+    public float TouchShoulderY { get; set; } = 0.13f;
+
+    public float TouchStartSelectY { get; set; } = 0.12f;
 
     public float TouchActionX { get; set; } = 0.82f;
 
@@ -133,6 +157,8 @@ public sealed class RuntimeUiConfigSnapshot
             OverlayUpdateIntervalMs = OverlayUpdateIntervalMs,
             OverlayBackground = OverlayBackground,
             OverlayPadding = OverlayPadding,
+            TouchButtonProfile = TouchButtonProfile,
+            TouchPromptStyle = TouchPromptStyle,
             TouchEnabled = TouchEnabled,
             TouchGameplayOnly = TouchGameplayOnly,
             TouchAutoDisableOnExternalInput = TouchAutoDisableOnExternalInput,
@@ -146,6 +172,10 @@ public sealed class RuntimeUiConfigSnapshot
             TouchLeftStickY = TouchLeftStickY,
             TouchLeftStickRadius = TouchLeftStickRadius,
             TouchLeftStickDeadzone = TouchLeftStickDeadzone,
+            TouchDpadX = TouchDpadX,
+            TouchDpadY = TouchDpadY,
+            TouchShoulderY = TouchShoulderY,
+            TouchStartSelectY = TouchStartSelectY,
             TouchActionX = TouchActionX,
             TouchActionY = TouchActionY,
             TouchButtonRadius = TouchButtonRadius,
@@ -198,6 +228,10 @@ public sealed class RuntimeUiConfigUpdate
 
     public int? OverlayPadding { get; set; }
 
+    public RuntimeUiTouchButtonProfiles? TouchButtonProfile { get; set; }
+
+    public RuntimeUiTouchPromptStyles? TouchPromptStyle { get; set; }
+
     public bool? TouchEnabled { get; set; }
 
     public bool? TouchGameplayOnly { get; set; }
@@ -223,6 +257,14 @@ public sealed class RuntimeUiConfigUpdate
     public float? TouchLeftStickRadius { get; set; }
 
     public float? TouchLeftStickDeadzone { get; set; }
+
+    public float? TouchDpadX { get; set; }
+
+    public float? TouchDpadY { get; set; }
+
+    public float? TouchShoulderY { get; set; }
+
+    public float? TouchStartSelectY { get; set; }
 
     public float? TouchActionX { get; set; }
 
@@ -255,6 +297,8 @@ public sealed class RuntimeUiConfigUpdate
             || OverlayUpdateIntervalMs.HasValue
             || OverlayBackground.HasValue
             || OverlayPadding.HasValue
+            || TouchButtonProfile.HasValue
+            || TouchPromptStyle.HasValue
             || TouchEnabled.HasValue
             || TouchGameplayOnly.HasValue
             || TouchAutoDisableOnExternalInput.HasValue
@@ -268,6 +312,10 @@ public sealed class RuntimeUiConfigUpdate
             || TouchLeftStickY.HasValue
             || TouchLeftStickRadius.HasValue
             || TouchLeftStickDeadzone.HasValue
+            || TouchDpadX.HasValue
+            || TouchDpadY.HasValue
+            || TouchShoulderY.HasValue
+            || TouchStartSelectY.HasValue
             || TouchActionX.HasValue
             || TouchActionY.HasValue
             || TouchButtonRadius.HasValue

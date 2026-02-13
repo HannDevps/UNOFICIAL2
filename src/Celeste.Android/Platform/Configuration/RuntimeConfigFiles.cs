@@ -58,6 +58,18 @@ public enum RuntimeOverlayPositions
 	BottomRight
 }
 
+public enum RuntimeTouchButtonProfiles
+{
+	Xbox,
+	PlayStation
+}
+
+public enum RuntimeTouchPromptStyles
+{
+	Alt,
+	Alt2
+}
+
 public sealed class RuntimeGameConfig
 {
 	public RuntimeResolutionModes ResolutionMode { get; set; } = RuntimeResolutionModes.Native;
@@ -100,6 +112,10 @@ public sealed class RuntimeGameConfig
 
 	public bool UseEdgeToEdgeOnAndroid { get; set; } = true;
 
+	public RuntimeTouchButtonProfiles TouchButtonProfile { get; set; } = RuntimeTouchButtonProfiles.Xbox;
+
+	public RuntimeTouchPromptStyles TouchPromptStyle { get; set; } = RuntimeTouchPromptStyles.Alt;
+
 	public bool TouchEnabled { get; set; } = true;
 
 	public bool TouchGameplayOnly { get; set; } = true;
@@ -125,6 +141,14 @@ public sealed class RuntimeGameConfig
 	public float TouchLeftStickRadius { get; set; } = 0.12f;
 
 	public float TouchLeftStickDeadzone { get; set; } = 0.26f;
+
+	public float TouchDpadX { get; set; } = 0.18f;
+
+	public float TouchDpadY { get; set; } = 0.56f;
+
+	public float TouchShoulderY { get; set; } = 0.13f;
+
+	public float TouchStartSelectY { get; set; } = 0.12f;
 
 	public float TouchActionX { get; set; } = 0.82f;
 
@@ -179,6 +203,8 @@ public sealed class RuntimeGameConfig
 		stringBuilder.AppendLine("# ForceLegacyBlendStates = true|false");
 		stringBuilder.AppendLine("# EnableDiagnosticLogs = true|false");
 		stringBuilder.AppendLine("# UseEdgeToEdgeOnAndroid = true|false");
+		stringBuilder.AppendLine("# TouchButtonProfile = Xbox|PlayStation");
+		stringBuilder.AppendLine("# TouchPromptStyle = Alt|Alt2");
 		stringBuilder.AppendLine("# TouchEnabled = true|false");
 		stringBuilder.AppendLine("# TouchGameplayOnly = true|false");
 		stringBuilder.AppendLine("# TouchAutoDisableOnExternalInput = true|false");
@@ -192,6 +218,10 @@ public sealed class RuntimeGameConfig
 		stringBuilder.AppendLine("# TouchLeftStickY = 0.76");
 		stringBuilder.AppendLine("# TouchLeftStickRadius = 0.12");
 		stringBuilder.AppendLine("# TouchLeftStickDeadzone = 0.26");
+		stringBuilder.AppendLine("# TouchDpadX = 0.18");
+		stringBuilder.AppendLine("# TouchDpadY = 0.56");
+		stringBuilder.AppendLine("# TouchShoulderY = 0.13");
+		stringBuilder.AppendLine("# TouchStartSelectY = 0.12");
 		stringBuilder.AppendLine("# TouchActionX = 0.82");
 		stringBuilder.AppendLine("# TouchActionY = 0.74");
 		stringBuilder.AppendLine("# TouchButtonRadius = 0.07");
@@ -220,6 +250,8 @@ public sealed class RuntimeGameConfig
 		stringBuilder.AppendLine("ForceLegacyBlendStates = " + ForceLegacyBlendStates.ToString().ToLowerInvariant());
 		stringBuilder.AppendLine("EnableDiagnosticLogs = " + EnableDiagnosticLogs.ToString().ToLowerInvariant());
 		stringBuilder.AppendLine("UseEdgeToEdgeOnAndroid = " + UseEdgeToEdgeOnAndroid.ToString().ToLowerInvariant());
+		stringBuilder.AppendLine("TouchButtonProfile = " + TouchButtonProfile);
+		stringBuilder.AppendLine("TouchPromptStyle = " + TouchPromptStyle);
 		stringBuilder.AppendLine("TouchEnabled = " + TouchEnabled.ToString().ToLowerInvariant());
 		stringBuilder.AppendLine("TouchGameplayOnly = " + TouchGameplayOnly.ToString().ToLowerInvariant());
 		stringBuilder.AppendLine("TouchAutoDisableOnExternalInput = " + TouchAutoDisableOnExternalInput.ToString().ToLowerInvariant());
@@ -233,6 +265,10 @@ public sealed class RuntimeGameConfig
 		stringBuilder.AppendLine("TouchLeftStickY = " + TouchLeftStickY.ToString("0.###", CultureInfo.InvariantCulture));
 		stringBuilder.AppendLine("TouchLeftStickRadius = " + TouchLeftStickRadius.ToString("0.###", CultureInfo.InvariantCulture));
 		stringBuilder.AppendLine("TouchLeftStickDeadzone = " + TouchLeftStickDeadzone.ToString("0.###", CultureInfo.InvariantCulture));
+		stringBuilder.AppendLine("TouchDpadX = " + TouchDpadX.ToString("0.###", CultureInfo.InvariantCulture));
+		stringBuilder.AppendLine("TouchDpadY = " + TouchDpadY.ToString("0.###", CultureInfo.InvariantCulture));
+		stringBuilder.AppendLine("TouchShoulderY = " + TouchShoulderY.ToString("0.###", CultureInfo.InvariantCulture));
+		stringBuilder.AppendLine("TouchStartSelectY = " + TouchStartSelectY.ToString("0.###", CultureInfo.InvariantCulture));
 		stringBuilder.AppendLine("TouchActionX = " + TouchActionX.ToString("0.###", CultureInfo.InvariantCulture));
 		stringBuilder.AppendLine("TouchActionY = " + TouchActionY.ToString("0.###", CultureInfo.InvariantCulture));
 		stringBuilder.AppendLine("TouchButtonRadius = " + TouchButtonRadius.ToString("0.###", CultureInfo.InvariantCulture));
@@ -477,6 +513,16 @@ public sealed class RuntimeGameConfigSource
 			config.UseEdgeToEdgeOnAndroid = result6;
 		}
 
+		if (TryGetEnum(values, "TouchButtonProfile", out RuntimeTouchButtonProfiles touchButtonProfile))
+		{
+			config.TouchButtonProfile = touchButtonProfile;
+		}
+
+		if (TryGetEnum(values, "TouchPromptStyle", out RuntimeTouchPromptStyles touchPromptStyle))
+		{
+			config.TouchPromptStyle = touchPromptStyle;
+		}
+
 		if (TryGetBool(values, "TouchEnabled", out bool touchEnabled))
 		{
 			config.TouchEnabled = touchEnabled;
@@ -540,6 +586,26 @@ public sealed class RuntimeGameConfigSource
 		if (TryGetFloat(values, "TouchLeftStickDeadzone", out float touchLeftStickDeadzone))
 		{
 			config.TouchLeftStickDeadzone = Math.Clamp(touchLeftStickDeadzone, 0.05f, 0.7f);
+		}
+
+		if (TryGetFloat(values, "TouchDpadX", out float touchDpadX))
+		{
+			config.TouchDpadX = Math.Clamp(touchDpadX, 0.06f, 0.45f);
+		}
+
+		if (TryGetFloat(values, "TouchDpadY", out float touchDpadY))
+		{
+			config.TouchDpadY = Math.Clamp(touchDpadY, 0.34f, 0.95f);
+		}
+
+		if (TryGetFloat(values, "TouchShoulderY", out float touchShoulderY))
+		{
+			config.TouchShoulderY = Math.Clamp(touchShoulderY, 0.06f, 0.3f);
+		}
+
+		if (TryGetFloat(values, "TouchStartSelectY", out float touchStartSelectY))
+		{
+			config.TouchStartSelectY = Math.Clamp(touchStartSelectY, 0.06f, 0.3f);
 		}
 
 		if (TryGetFloat(values, "TouchActionX", out float touchActionX))

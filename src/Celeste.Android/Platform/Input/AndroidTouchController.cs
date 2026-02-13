@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Android.Views;
 using Celeste.Android.Platform.Configuration;
 using Celeste.Android.Platform.Rendering;
@@ -27,6 +28,10 @@ public sealed class AndroidTouchController : IDisposable
     private DateTime _lastExternalInputCheckUtc;
     private bool _externalInputConnected;
     private Texture2D? _circleTexture;
+    private readonly Dictionary<string, Texture2D> _promptTextures = new(StringComparer.Ordinal);
+    private RuntimeTouchButtonProfiles _loadedPromptProfile = RuntimeTouchButtonProfiles.Xbox;
+    private RuntimeTouchPromptStyles _loadedPromptStyle = RuntimeTouchPromptStyles.Alt;
+    private bool _promptTexturesInitialized;
 
     private bool _touchSuppressedByHardware;
     private bool _showGameplayOverlay;
@@ -60,10 +65,12 @@ public sealed class AndroidTouchController : IDisposable
     private bool _menuPointerDown;
     private bool _menuPointerPressedThisFrame;
     private Vector2 _menuPointerPosition;
+    private int _pendingMenuCancelFrames;
 
     private Vector2 _leftStickCenter;
     private Vector2 _leftStickKnob;
     private float _leftStickRadius;
+    private int _activeStickTouchId = -1;
 
     private Vector2 _actionCenter;
     private float _buttonRadius;
@@ -94,6 +101,7 @@ public sealed class AndroidTouchController : IDisposable
 
     public void Dispose()
     {
+        DisposePromptTextures();
         _circleTexture?.Dispose();
         _circleTexture = null;
     }
@@ -103,9 +111,15 @@ public sealed class AndroidTouchController : IDisposable
         _config = config ?? RuntimeGameConfig.CreateDefault();
     }
 
+    public void QueueMenuCancelPulse()
+    {
+        _pendingMenuCancelFrames = Math.Max(_pendingMenuCancelFrames, 2);
+    }
+
     public KeyboardState ApplyKeyboardState(KeyboardState hardwareState)
     {
         ResetFrameState();
+        ConsumePendingMenuSignals();
 
         bool gameplayScene = IsGameplayScene();
         bool touchEnabled = _config.TouchEnabled;
@@ -116,22 +130,24 @@ public sealed class AndroidTouchController : IDisposable
         if (!touchEnabled)
         {
             _touchSuppressedByHardware = false;
+            _activeStickTouchId = -1;
             _menuPointerDown = false;
             _menuPointerPressedThisFrame = false;
             _menuTouchStart.Clear();
             _menuSwipeConsumed.Clear();
-            return hardwareState;
+            return BuildKeyboardState(hardwareState);
         }
 
         _touchSuppressedByHardware = _config.TouchAutoDisableOnExternalInput && IsExternalInputConnected();
         if (_touchSuppressedByHardware)
         {
             _showGameplayOverlay = false;
+            _activeStickTouchId = -1;
             _menuPointerDown = false;
             _menuPointerPressedThisFrame = false;
             _menuTouchStart.Clear();
             _menuSwipeConsumed.Clear();
-            return hardwareState;
+            return BuildKeyboardState(hardwareState);
         }
 
         TouchCollection touches = TouchPanel.GetState();
@@ -144,6 +160,7 @@ public sealed class AndroidTouchController : IDisposable
         else
         {
             _leftStickKnob = Vector2.Zero;
+            _activeStickTouchId = -1;
         }
 
         bool allowMenuTouch = !gameplayScene && _config.TouchTapMenuNavigation;
@@ -194,14 +211,19 @@ public sealed class AndroidTouchController : IDisposable
             return;
         }
 
+        EnsurePromptTextures(graphicsDevice);
+
         float alpha = _overlayOpacity;
         Color plate = ApplyAlpha(new Color(10, 16, 25), alpha * 0.65f);
         Color accent = ApplyAlpha(new Color(220, 226, 236), alpha * 0.78f);
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone);
 
-        DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 1.04f, plate);
-        DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.7f, ApplyAlpha(new Color(40, 56, 76), alpha * 0.8f));
+        if (!DrawPromptTexture(spriteBatch, "STICK_BASE", _leftStickCenter, _leftStickRadius * 1.12f, ApplyAlpha(Color.White, alpha * 0.95f)))
+        {
+            DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 1.04f, plate);
+            DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.7f, ApplyAlpha(new Color(40, 56, 76), alpha * 0.8f));
+        }
 
         if (_leftStickKnob != Vector2.Zero)
         {
@@ -214,29 +236,39 @@ public sealed class AndroidTouchController : IDisposable
 
         if (_config.TouchEnableDpad)
         {
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadLeftCenter, _dpadRadius, "L", _moveLeft, new Color(70, 88, 110), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadRightCenter, _dpadRadius, "R", _moveRight, new Color(70, 88, 110), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadUpCenter, _dpadRadius, "U", _moveUp, new Color(70, 88, 110), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadDownCenter, _dpadRadius, "D", _moveDown, new Color(70, 88, 110), alpha);
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadLeftCenter, _dpadRadius, "L", _moveLeft, new Color(70, 88, 110), alpha, "DPAD_LEFT");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadRightCenter, _dpadRadius, "R", _moveRight, new Color(70, 88, 110), alpha, "DPAD_RIGHT");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadUpCenter, _dpadRadius, "U", _moveUp, new Color(70, 88, 110), alpha, "DPAD_UP");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _dpadDownCenter, _dpadRadius, "D", _moveDown, new Color(70, 88, 110), alpha, "DPAD_DOWN");
         }
 
-        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterA, _buttonRadius, "A", _buttonA, new Color(58, 182, 102), alpha);
-        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterB, _buttonRadius, "B", _buttonB, new Color(217, 86, 89), alpha);
-        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterX, _buttonRadius, "X", _buttonX, new Color(79, 153, 243), alpha);
-        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterY, _buttonRadius, "Y", _buttonY, new Color(223, 192, 63), alpha);
+        bool playStationProfile = _config.TouchButtonProfile == RuntimeTouchButtonProfiles.PlayStation;
+        string labelA = playStationProfile ? "X" : "A";
+        string labelB = playStationProfile ? "O" : "B";
+        string labelX = playStationProfile ? "[]" : "X";
+        string labelY = playStationProfile ? "/\\" : "Y";
+        Color colorA = playStationProfile ? new Color(102, 152, 255) : new Color(58, 182, 102);
+        Color colorB = playStationProfile ? new Color(255, 96, 96) : new Color(217, 86, 89);
+        Color colorX = playStationProfile ? new Color(255, 132, 196) : new Color(79, 153, 243);
+        Color colorY = playStationProfile ? new Color(128, 206, 124) : new Color(223, 192, 63);
+
+        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterA, _buttonRadius, labelA, _buttonA, colorA, alpha, "FACE_A");
+        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterB, _buttonRadius, labelB, _buttonB, colorB, alpha, "FACE_B");
+        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterX, _buttonRadius, labelX, _buttonX, colorX, alpha, "FACE_X");
+        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterY, _buttonRadius, labelY, _buttonY, colorY, alpha, "FACE_Y");
 
         if (_config.TouchEnableShoulders)
         {
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _leftBumperCenter, _buttonRadius * 0.82f, "LB", _leftBumper, new Color(120, 135, 156), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _rightBumperCenter, _buttonRadius * 0.82f, "RB", _rightBumper, new Color(120, 135, 156), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _leftTriggerCenter, _buttonRadius * 0.75f, "LT", _leftTrigger, new Color(102, 118, 140), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _rightTriggerCenter, _buttonRadius * 0.75f, "RT", _rightTrigger, new Color(102, 118, 140), alpha);
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _leftBumperCenter, _buttonRadius * 0.82f, "LB", _leftBumper, new Color(120, 135, 156), alpha, "LB");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _rightBumperCenter, _buttonRadius * 0.82f, "RB", _rightBumper, new Color(120, 135, 156), alpha, "RB");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _leftTriggerCenter, _buttonRadius * 0.75f, "LT", _leftTrigger, new Color(102, 118, 140), alpha, "LT");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _rightTriggerCenter, _buttonRadius * 0.75f, "RT", _rightTrigger, new Color(102, 118, 140), alpha, "RT");
         }
 
         if (_config.TouchEnableStartSelect)
         {
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _backCenter, _buttonRadius * 0.65f, "BACK", _buttonBack, new Color(86, 104, 128), alpha);
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _startCenter, _buttonRadius * 0.65f, "START", _buttonStart, new Color(86, 104, 128), alpha);
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _backCenter, _buttonRadius * 0.65f, "BACK", _buttonBack, new Color(86, 104, 128), alpha, "BACK");
+            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _startCenter, _buttonRadius * 0.65f, "START", _buttonStart, new Color(86, 104, 128), alpha, "START");
         }
 
         spriteBatch.End();
@@ -278,6 +310,13 @@ public sealed class AndroidTouchController : IDisposable
         float stickCaptureRadius = _leftStickRadius * 1.6f;
         float bestDistSq = float.MaxValue;
 
+        if (_activeStickTouchId >= 0 && TryGetTouchById(touches, _activeStickTouchId, out TouchLocation activeTouch) && IsTouchDown(activeTouch.State))
+        {
+            stickTouchId = _activeStickTouchId;
+            stickDelta = activeTouch.Position - _leftStickCenter;
+            bestDistSq = stickDelta.LengthSquared();
+        }
+
         for (int i = 0; i < touches.Count; i++)
         {
             TouchLocation touch = touches[i];
@@ -294,7 +333,7 @@ public sealed class AndroidTouchController : IDisposable
 
             Vector2 delta = pos - _leftStickCenter;
             float distSq = delta.LengthSquared();
-            if (distSq <= stickCaptureRadius * stickCaptureRadius && distSq < bestDistSq)
+            if (stickTouchId < 0 && distSq <= stickCaptureRadius * stickCaptureRadius && distSq < bestDistSq)
             {
                 bestDistSq = distSq;
                 stickTouchId = touch.Id;
@@ -331,6 +370,7 @@ public sealed class AndroidTouchController : IDisposable
 
         if (stickTouchId >= 0)
         {
+            _activeStickTouchId = stickTouchId;
             float length = stickDelta.Length();
             if (length > _leftStickRadius && length > 0f)
             {
@@ -353,6 +393,7 @@ public sealed class AndroidTouchController : IDisposable
         }
         else
         {
+            _activeStickTouchId = -1;
             _leftStickKnob = _leftStickCenter;
         }
     }
@@ -448,14 +489,17 @@ public sealed class AndroidTouchController : IDisposable
                 _menuPulseRight = true;
             }
         }
-        else if (delta.Y < 0f)
+    }
+
+    private void ConsumePendingMenuSignals()
+    {
+        if (_pendingMenuCancelFrames <= 0)
         {
-            _menuPulseUp = true;
+            return;
         }
-        else
-        {
-            _menuPulseDown = true;
-        }
+
+        _menuPulseCancel = true;
+        _pendingMenuCancelFrames--;
     }
 
     private void EmitTap(Vector2 pos, float width, float height)
@@ -589,6 +633,21 @@ public sealed class AndroidTouchController : IDisposable
         return delta.LengthSquared() <= radius * radius;
     }
 
+    private static bool TryGetTouchById(TouchCollection touches, int id, out TouchLocation touch)
+    {
+        for (int i = 0; i < touches.Count; i++)
+        {
+            if (touches[i].Id == id)
+            {
+                touch = touches[i];
+                return true;
+            }
+        }
+
+        touch = default(TouchLocation);
+        return false;
+    }
+
     private static bool IsGameplayScene()
     {
         return Engine.Scene is global::Celeste.Level;
@@ -652,15 +711,18 @@ public sealed class AndroidTouchController : IDisposable
         _buttonCenterX = _actionCenter + new Vector2(-_actionSpacing, 0f);
         _buttonCenterY = _actionCenter + new Vector2(0f, -_actionSpacing);
 
-        float shoulderY = height * 0.13f;
+        float shoulderY = height * Math.Clamp(_config.TouchShoulderY, 0.06f, 0.3f);
         _leftBumperCenter = new Vector2(width * 0.23f, shoulderY);
         _rightBumperCenter = new Vector2(width * 0.77f, shoulderY);
         _leftTriggerCenter = new Vector2(width * 0.1f, shoulderY * 0.9f);
         _rightTriggerCenter = new Vector2(width * 0.9f, shoulderY * 0.9f);
-        _backCenter = new Vector2(width * 0.43f, height * 0.12f);
-        _startCenter = new Vector2(width * 0.57f, height * 0.12f);
+        float startSelectY = height * Math.Clamp(_config.TouchStartSelectY, 0.06f, 0.3f);
+        _backCenter = new Vector2(width * 0.43f, startSelectY);
+        _startCenter = new Vector2(width * 0.57f, startSelectY);
 
-        _dpadCenter = _leftStickCenter + new Vector2(0f, -_leftStickRadius * 2f);
+        _dpadCenter = new Vector2(
+            width * Math.Clamp(_config.TouchDpadX, 0.06f, 0.45f),
+            height * Math.Clamp(_config.TouchDpadY, 0.34f, 0.95f));
         _dpadRadius = _buttonRadius * 0.78f;
         float dpadGap = _dpadRadius * 1.05f;
         _dpadLeftCenter = _dpadCenter + new Vector2(-dpadGap, 0f);
@@ -734,8 +796,14 @@ public sealed class AndroidTouchController : IDisposable
         return new Color(color.R, color.G, color.B, (byte)Math.Clamp((int)MathF.Round(alpha * 255f), 0, 255));
     }
 
-    private void DrawFaceButton(SpriteBatch spriteBatch, SpriteFont? font, BitmapFallbackFont fallbackFont, Texture2D pixel, Vector2 center, float radius, string label, bool pressed, Color baseColor, float alpha)
+    private void DrawFaceButton(SpriteBatch spriteBatch, SpriteFont? font, BitmapFallbackFont fallbackFont, Texture2D pixel, Vector2 center, float radius, string label, bool pressed, Color baseColor, float alpha, string promptKey)
     {
+        float drawRadius = pressed ? radius * 1.04f : radius;
+        if (DrawPromptTexture(spriteBatch, promptKey, center, drawRadius, pressed ? ApplyAlpha(Color.White, alpha) : ApplyAlpha(new Color(225, 234, 245), alpha * 0.93f)))
+        {
+            return;
+        }
+
         Color color = ApplyAlpha(baseColor, pressed ? alpha : alpha * 0.8f);
         if (pressed)
         {
@@ -746,8 +814,14 @@ public sealed class AndroidTouchController : IDisposable
         DrawButtonLabel(spriteBatch, font, fallbackFont, pixel, label, center, radius, pressed, alpha);
     }
 
-    private void DrawDigitalButton(SpriteBatch spriteBatch, SpriteFont? font, BitmapFallbackFont fallbackFont, Texture2D pixel, Vector2 center, float radius, string label, bool pressed, Color baseColor, float alpha)
+    private void DrawDigitalButton(SpriteBatch spriteBatch, SpriteFont? font, BitmapFallbackFont fallbackFont, Texture2D pixel, Vector2 center, float radius, string label, bool pressed, Color baseColor, float alpha, string promptKey)
     {
+        float drawRadius = pressed ? radius * 1.04f : radius;
+        if (DrawPromptTexture(spriteBatch, promptKey, center, drawRadius, pressed ? ApplyAlpha(Color.White, alpha) : ApplyAlpha(new Color(222, 232, 244), alpha * 0.9f)))
+        {
+            return;
+        }
+
         Color color = ApplyAlpha(baseColor, pressed ? alpha : alpha * 0.72f);
         if (pressed)
         {
@@ -776,6 +850,211 @@ public sealed class AndroidTouchController : IDisposable
         float height = 7f * fallbackScale;
         Vector2 fallbackPos = new Vector2(center.X - width * 0.5f, center.Y - height * 0.5f);
         fallbackFont.DrawString(spriteBatch, pixel, label, fallbackPos, textColor, fallbackScale);
+    }
+
+    private bool DrawPromptTexture(SpriteBatch spriteBatch, string key, Vector2 center, float radius, Color color)
+    {
+        if (!_promptTextures.TryGetValue(key, out Texture2D? texture))
+        {
+            return false;
+        }
+
+        float size = Math.Max(texture.Width, texture.Height);
+        if (size <= 0f)
+        {
+            return false;
+        }
+
+        float scale = (radius * 2f) / size;
+        Vector2 origin = new Vector2(texture.Width * 0.5f, texture.Height * 0.5f);
+        spriteBatch.Draw(texture, center, null, color, 0f, origin, scale, SpriteEffects.None, 0f);
+        return true;
+    }
+
+    private void EnsurePromptTextures(GraphicsDevice graphicsDevice)
+    {
+        if (_loadedPromptProfile != _config.TouchButtonProfile || _loadedPromptStyle != _config.TouchPromptStyle)
+        {
+            DisposePromptTextures();
+            _loadedPromptProfile = _config.TouchButtonProfile;
+            _loadedPromptStyle = _config.TouchPromptStyle;
+            _promptTexturesInitialized = false;
+        }
+
+        if (_promptTexturesInitialized)
+        {
+            return;
+        }
+
+        _promptTexturesInitialized = true;
+        foreach (string sourceRoot in EnumeratePromptSourceRoots())
+        {
+            if (!Directory.Exists(sourceRoot))
+            {
+                continue;
+            }
+
+            TryLoadPromptTextures(graphicsDevice, sourceRoot);
+            if (_promptTextures.Count <= 0)
+            {
+                continue;
+            }
+
+            _logger.Log(LogLevel.Info, "INPUT", "Touch prompt textures loaded", context: $"profile={_config.TouchButtonProfile}; style={_config.TouchPromptStyle}; count={_promptTextures.Count}; root={sourceRoot}");
+            return;
+        }
+
+        _logger.Log(LogLevel.Warn, "INPUT", "Touch prompt pack not found. Falling back to generated touch buttons.", context: $"profile={_config.TouchButtonProfile}; style={_config.TouchPromptStyle}");
+    }
+
+    private void TryLoadPromptTextures(GraphicsDevice graphicsDevice, string sourceRoot)
+    {
+        Dictionary<string, string[]> map = _config.TouchButtonProfile == RuntimeTouchButtonProfiles.PlayStation
+            ? BuildPlayStationPromptPathMap()
+            : BuildXboxPromptPathMap(_config.TouchPromptStyle);
+
+        foreach ((string key, string[] candidates) in map)
+        {
+            LoadPromptTexture(graphicsDevice, sourceRoot, key, candidates);
+        }
+    }
+
+    private void LoadPromptTexture(GraphicsDevice graphicsDevice, string sourceRoot, string key, string[] candidates)
+    {
+        if (_promptTextures.ContainsKey(key))
+        {
+            return;
+        }
+
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            string relative = candidates[i].Replace('/', Path.DirectorySeparatorChar);
+            string path = Path.Combine(sourceRoot, relative);
+            if (!File.Exists(path))
+            {
+                continue;
+            }
+
+            try
+            {
+                using FileStream stream = File.OpenRead(path);
+                Texture2D texture = Texture2D.FromStream(graphicsDevice, stream);
+                _promptTextures[key] = texture;
+                return;
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private static Dictionary<string, string[]> BuildXboxPromptPathMap(RuntimeTouchPromptStyles style)
+    {
+        bool preferAlt2 = style == RuntimeTouchPromptStyles.Alt2;
+
+        string[] Prefer(string alt, string alt2)
+        {
+            return preferAlt2 ? new string[2] { alt2, alt } : new string[2] { alt, alt2 };
+        }
+
+        string[] Prefer4(string altA, string alt2A, string altB, string alt2B)
+        {
+            return preferAlt2
+                ? new string[4] { alt2A, altA, alt2B, altB }
+                : new string[4] { altA, alt2A, altB, alt2B };
+        }
+
+        return new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["FACE_A"] = Prefer4("XGamepad/Alt/T_X_A_Color_Alt.png", "XGamepad/Alt 2/T_X_A_Color_Alt_2.png", "XGamepad/Alt/T_X_A_White_Alt.png", "XGamepad/Alt 2/T_X_A_White_Alt_2.png"),
+            ["FACE_B"] = Prefer4("XGamepad/Alt/T_X_B_Color_Alt.png", "XGamepad/Alt 2/T_X_B_Color_Alt_2.png", "XGamepad/Alt/T_X_B_White_Alt.png", "XGamepad/Alt 2/T_X_B_White_Alt_2.png"),
+            ["FACE_X"] = Prefer4("XGamepad/Alt/T_X_X_Color_Alt.png", "XGamepad/Alt 2/T_X_X_Color_Alt_2.png", "XGamepad/Alt/T_X_X_White_Alt.png", "XGamepad/Alt 2/T_X_X_White_Alt_2.png"),
+            ["FACE_Y"] = Prefer4("XGamepad/Alt/T_X_Y_Color_Alt.png", "XGamepad/Alt 2/T_X_Y_Color_Alt_2.png", "XGamepad/Alt/T_X_Y_White_Alt.png", "XGamepad/Alt 2/T_X_Y_White_Alt_2.png"),
+            ["LB"] = Prefer("XGamepad/Alt/T_X_LB_Alt.png", "XGamepad/Alt 2/T_X_LB_Alt_2.png"),
+            ["RB"] = Prefer("XGamepad/Alt/T_X_RB_Alt.png", "XGamepad/Alt 2/T_X_RB_Alt_2.png"),
+            ["LT"] = Prefer("XGamepad/Alt/T_X_LT_Alt.png", "XGamepad/Alt 2/T_X_LT_Alt_2.png"),
+            ["RT"] = Prefer("XGamepad/Alt/T_X_RT_Alt.png", "XGamepad/Alt 2/T_X_RT_Alt_2.png"),
+            ["DPAD_LEFT"] = Prefer("XGamepad/Alt/T_X_Dpad_Left_Alt.png", "XGamepad/Alt 2/T_X_Dpad_Left_Alt_2.png"),
+            ["DPAD_RIGHT"] = Prefer("XGamepad/Alt/T_X_Dpad_Right_Alt.png", "XGamepad/Alt 2/T_X_Dpad_Right_Alt_2.png"),
+            ["DPAD_UP"] = Prefer("XGamepad/Alt/T_X_Dpad_Up_Alt.png", "XGamepad/Alt 2/T_X_Dpad_Up_Alt_2.png"),
+            ["DPAD_DOWN"] = Prefer("XGamepad/Alt/T_X_Dpad_Down_Alt.png", "XGamepad/Alt 2/T_X_Dpad_Down_Alt_2.png"),
+            ["BACK"] = Prefer("XGamepad/Alt/T_X_Share_Alt.png", "XGamepad/Alt 2/T_X_Share_Alt_2.png"),
+            ["START"] = Prefer4("XGamepad/Alt/T_X_Share_Alt-1.png", "XGamepad/Alt 2/T_X_Share_Alt_2-1.png", "XGamepad/Alt/T_X_Share_Alt.png", "XGamepad/Alt 2/T_X_Share_Alt_2.png"),
+            ["STICK_BASE"] = Prefer("XGamepad/Alt/T_X_L_2D_Alt.png", "XGamepad/Alt 2/T_X_L_2D_Alt_2.png")
+        };
+    }
+
+    private static Dictionary<string, string[]> BuildPlayStationPromptPathMap()
+    {
+        return new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["FACE_A"] = new string[2] { "P4Gamepad/Alt/T_P4_Cross_Color_Alt.png", "P4Gamepad/Alt/T_P4_Cross_Alt.png" },
+            ["FACE_B"] = new string[2] { "P4Gamepad/Alt/T_P4_Circle_Color_Alt.png", "P4Gamepad/Alt/T_P4_Circle_Alt.png" },
+            ["FACE_X"] = new string[2] { "P4Gamepad/Alt/T_P4_Square_Color_Alt.png", "P4Gamepad/Alt/T_P4_Square_Alt.png" },
+            ["FACE_Y"] = new string[2] { "P4Gamepad/Alt/T_P4_Triangle_Color_Alt.png", "P4Gamepad/Alt/T_P4_Triangle_Alt.png" },
+            ["LB"] = new string[1] { "P4Gamepad/Alt/T_P4_L1_Alt.png" },
+            ["RB"] = new string[1] { "P4Gamepad/Alt/T_P4_R1_Alt.png" },
+            ["LT"] = new string[1] { "P4Gamepad/Alt/T_P4_L2_Alt.png" },
+            ["RT"] = new string[1] { "P4Gamepad/Alt/T_P4_R2_Alt.png" },
+            ["DPAD_LEFT"] = new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Left_Alt.png" },
+            ["DPAD_RIGHT"] = new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Right_Alt.png" },
+            ["DPAD_UP"] = new string[2] { "P4Gamepad/Alt/T_P4_Dpad_UP_Alt.png", "P4Gamepad/Alt/T_P4_Dpad_Up_Alt.png" },
+            ["DPAD_DOWN"] = new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Down_Alt.png" },
+            ["BACK"] = new string[1] { "P4Gamepad/Alt/T_P4_Share_Alt.png" },
+            ["START"] = new string[1] { "P4Gamepad/Alt/T_P4_Options_Alt.png" },
+            ["STICK_BASE"] = new string[2] { "P4Gamepad/Alt/T_P4_L_2D_Alt.png", "P4Gamepad/Alt/T_P4_L3_2D_Alt.png" }
+        };
+    }
+
+    private static IEnumerable<string> EnumeratePromptSourceRoots()
+    {
+        var roots = new List<string>();
+        if (!string.IsNullOrWhiteSpace(Environment.CurrentDirectory))
+        {
+            DirectoryInfo? directoryInfo = new DirectoryInfo(Environment.CurrentDirectory);
+            for (int i = 0; i < 6 && directoryInfo != null; i++)
+            {
+                roots.Add(Path.Combine(directoryInfo.FullName, "InputPromptsPack_V7_UnrealPack", "Source"));
+                roots.Add(Path.Combine(directoryInfo.FullName, "CELESTEPORT", "InputPromptsPack_V7_UnrealPack", "Source"));
+                directoryInfo = directoryInfo.Parent;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(AppContext.BaseDirectory))
+        {
+            roots.Add(Path.Combine(AppContext.BaseDirectory, "InputPromptsPack_V7_UnrealPack", "Source"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(Engine.ContentDirectory))
+        {
+            roots.Add(Path.Combine(Engine.ContentDirectory, "InputPromptsPack_V7_UnrealPack", "Source"));
+        }
+
+        roots.Add(Path.Combine("/data/celeste.app/Files", "InputPromptsPack_V7_UnrealPack", "Source"));
+        roots.Add(Path.Combine("/data/celeste.app/Files/Config", "InputPromptsPack_V7_UnrealPack", "Source"));
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < roots.Count; i++)
+        {
+            string root = roots[i];
+            if (string.IsNullOrWhiteSpace(root) || !seen.Add(root))
+            {
+                continue;
+            }
+
+            yield return root;
+        }
+    }
+
+    private void DisposePromptTextures()
+    {
+        foreach (Texture2D texture in _promptTextures.Values)
+        {
+            texture.Dispose();
+        }
+
+        _promptTextures.Clear();
+        _promptTexturesInitialized = false;
     }
 
     private void DrawCircle(SpriteBatch spriteBatch, Vector2 center, float radius, Color color)

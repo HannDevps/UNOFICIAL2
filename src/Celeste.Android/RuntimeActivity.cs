@@ -137,6 +137,18 @@ public class RuntimeActivity : AndroidGameActivity
         base.OnPause();
     }
 
+    public override void OnBackPressed()
+    {
+        if (_touchController != null)
+        {
+            _touchController.QueueMenuCancelPulse();
+            _logger?.Log(LogLevel.Info, "INPUT", "Android Back pressed: routed to in-game menu cancel");
+            return;
+        }
+
+        base.OnBackPressed();
+    }
+
     public override void OnLowMemory()
     {
         var baseForwarded = true;
