@@ -62,7 +62,7 @@ public class RuntimeActivity : AndroidGameActivity
             fmodEnabled ? LogLevel.Info : LogLevel.Warn,
             "AUDIO",
             fmodEnabled
-                ? "Android override active: FMOD enabled for test"
+                ? "Android native FMOD audio enabled"
                 : "Android policy active: FMOD disabled; runtime will run in silent mode");
 
         _logger.Log(LogLevel.Info, "APP", "RUNTIME_SESSION_START");
@@ -93,7 +93,17 @@ public class RuntimeActivity : AndroidGameActivity
 
         var fileSystem = new AndroidFileSystem(paths, _logger);
         var input = new AndroidInputProvider(_logger);
-        var audio = new NullAudioBackend(_logger);
+        IAudioBackend audio = fmodEnabled
+            ? new FmodAudioBackend(_logger)
+            : new NullAudioBackend(_logger);
+        try
+        {
+            audio.Initialize();
+        }
+        catch (Exception exception)
+        {
+            _logger.Log(LogLevel.Warn, "AUDIO", "Failed to initialize selected backend at RuntimeActivity startup", exception, $"backend={audio.BackendName}");
+        }
         _services = new PlatformServices(_logger, paths, fileSystem, input, audio);
         _touchController = new AndroidTouchController(_logger);
         MInput.KeyboardStateOverride = _touchController.ApplyKeyboardState;

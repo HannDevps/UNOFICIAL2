@@ -50,21 +50,42 @@ public static class Audio
 
 		private static string ResolveBankPath(string name)
 		{
-			string text = Path.Combine(Engine.ContentDirectory, "FMOD", "Android", name);
-			if (File.Exists(text + ".bank"))
+			string[] searchFolders;
+			string preferredFolder;
+			if (OperatingSystem.IsAndroid())
 			{
-				return text;
+				searchFolders = new string[4] { "Mobile", "Android", "Desktop", string.Empty };
+				preferredFolder = "Mobile";
+			}
+			else
+			{
+				searchFolders = new string[4] { "Desktop", "Mobile", "Android", string.Empty };
+				preferredFolder = "Desktop";
 			}
 
-			string text2 = Path.Combine(Engine.ContentDirectory, "FMOD", "Desktop", name);
-			if (File.Exists(text2 + ".bank"))
+			string preferredPath = Path.Combine(Engine.ContentDirectory, "FMOD", preferredFolder, name);
+			for (int i = 0; i < searchFolders.Length; i++)
 			{
-				CelestePathBridge.LogWarn("FMOD", "Android banks not found; falling back to Desktop bank layout.");
-				return text2;
+				string folder = searchFolders[i];
+				string candidatePath = string.IsNullOrEmpty(folder)
+					? Path.Combine(Engine.ContentDirectory, "FMOD", name)
+					: Path.Combine(Engine.ContentDirectory, "FMOD", folder, name);
+
+				if (!File.Exists(candidatePath + ".bank"))
+				{
+					continue;
+				}
+
+				if (!string.Equals(candidatePath, preferredPath, StringComparison.OrdinalIgnoreCase))
+				{
+					CelestePathBridge.LogWarn("FMOD", $"Using fallback bank layout '{candidatePath}'. Preferred path '{preferredPath}.bank' was not found.");
+				}
+
+				return candidatePath;
 			}
 
-			CelestePathBridge.LogError("FMOD", $"Missing bank '{name}' in both Android and Desktop bank folders.");
-			return text;
+			CelestePathBridge.LogError("FMOD", $"Missing bank '{name}' in FMOD folders. Checked: Mobile, Android, Desktop and root.");
+			return preferredPath;
 		}
 	}
 
@@ -212,8 +233,9 @@ public static class Audio
 		{
 			studioFlags = FMOD.Studio.INITFLAGS.LIVEUPDATE;
 		}
+
 		CheckFmod(FMOD.Studio.System.create(out system));
-		CheckFmod(system.initialize(1024, studioFlags, FMOD.INITFLAGS.NORMAL, IntPtr.Zero));
+		InitializeSystemWithOutputFallback(studioFlags);
 		attributes3d.forward = new VECTOR
 		{
 			x = 0f,
@@ -229,6 +251,58 @@ public static class Audio
 		SetListenerPosition(new Vector3(0f, 0f, 1f), new Vector3(0f, 1f, 0f), new Vector3(0f, 0f, -345f));
 		ready = true;
 		CelestePathBridge.LogInfo("FMOD", "FMOD initialized successfully");
+	}
+
+	private static void InitializeSystemWithOutputFallback(FMOD.Studio.INITFLAGS studioFlags)
+	{
+		CheckFmod(system.getLowLevelSystem(out var lowLevelSystem));
+		OUTPUTTYPE[] outputCandidates = GetOutputCandidates();
+		RESULT lastResult = RESULT.OK;
+		for (int i = 0; i < outputCandidates.Length; i++)
+		{
+			OUTPUTTYPE outputType = outputCandidates[i];
+			if (OperatingSystem.IsAndroid() && outputType != OUTPUTTYPE.AUTODETECT)
+			{
+				RESULT result = lowLevelSystem.setOutput(outputType);
+				if (result != RESULT.OK)
+				{
+					lastResult = result;
+					CelestePathBridge.LogWarn("FMOD", $"Failed to set FMOD output mode '{outputType}' on Android: {result}");
+					continue;
+				}
+			}
+
+			RESULT result2 = system.initialize(1024, studioFlags, FMOD.INITFLAGS.NORMAL, IntPtr.Zero);
+			if (result2 == RESULT.OK)
+			{
+				if (lowLevelSystem.getOutput(out var output) == RESULT.OK)
+				{
+					CelestePathBridge.LogInfo("FMOD", $"FMOD core output active: {output}");
+				}
+
+				return;
+			}
+
+			lastResult = result2;
+			CelestePathBridge.LogWarn("FMOD", $"FMOD init attempt failed on output '{outputType}': {result2}");
+		}
+
+		throw new Exception($"FMOD initialize failed after trying {outputCandidates.Length} output mode(s). Last error: {lastResult}");
+	}
+
+	private static OUTPUTTYPE[] GetOutputCandidates()
+	{
+		if (!OperatingSystem.IsAndroid())
+		{
+			return new OUTPUTTYPE[1] { OUTPUTTYPE.AUTODETECT };
+		}
+
+		return new OUTPUTTYPE[3]
+		{
+			OUTPUTTYPE.AUTODETECT,
+			OUTPUTTYPE.AUDIOTRACK,
+			OUTPUTTYPE.OPENSL
+		};
 	}
 
 	public static void Update()

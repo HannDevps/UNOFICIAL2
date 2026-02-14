@@ -276,7 +276,41 @@ public sealed class ContentValidator
                 "Content/FMOD",
                 fmodPath,
                 "Nenhum banco .bank encontrado. Audio pode entrar em fallback silencioso.",
-                "Copie os arquivos .bank para Content/FMOD/Android ou Content/FMOD/Desktop."
+                "Copie os arquivos .bank para Content/FMOD/Mobile (ou Android/Desktop)."
+            ));
+
+            return;
+        }
+
+        var requiredBanks = new[]
+        {
+            "Master Bank.bank",
+            "Master Bank.strings.bank",
+            "music.bank",
+            "sfx.bank",
+            "ui.bank",
+            "dlc_music.bank",
+            "dlc_sfx.bank"
+        };
+        var existingNames = bankFiles
+            .Select(Path.GetFileName)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var requiredBank in requiredBanks)
+        {
+            if (existingNames.Contains(requiredBank))
+            {
+                continue;
+            }
+
+            report.Issues.Add(new ContentValidationIssue(
+                IssueSeverity.Warning,
+                "AUDIO_REQUIRED_BANK_MISSING",
+                "Content/FMOD",
+                fmodPath,
+                $"Banco obrigatorio ausente: {requiredBank}. Audio pode cair em fallback silencioso.",
+                "Gere e copie os bancos FMOD 1.10.14 para Content/FMOD/Mobile."
             ));
         }
     }

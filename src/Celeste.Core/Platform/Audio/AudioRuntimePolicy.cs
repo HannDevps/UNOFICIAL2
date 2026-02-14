@@ -8,7 +8,17 @@ public static class AudioRuntimePolicy
 
     public static bool IsFmodEnabledOnAndroid()
     {
-        return AppContext.TryGetSwitch(EnableFmodOnAndroidSwitch, out var enabled) && enabled;
+        if (!OperatingSystem.IsAndroid())
+        {
+            return true;
+        }
+
+        if (AppContext.TryGetSwitch(EnableFmodOnAndroidSwitch, out var enabled))
+        {
+            return enabled;
+        }
+
+        return true;
     }
 
     public static bool ShouldForceSilentAudio()
