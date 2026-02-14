@@ -10,6 +10,7 @@ using Celeste.Android.Platform.Diagnostics;
 using Celeste.Android.Platform.Filesystem;
 using Celeste.Android.Platform.Fullscreen;
 using Celeste.Android.Platform.Input;
+using Celeste.Android.Platform.Interop;
 using Celeste.Android.Platform.Logging;
 using Celeste.Android.Platform.Paths;
 using Celeste.Core.Platform.Audio;
@@ -40,6 +41,7 @@ public class RuntimeActivity : AndroidGameActivity
     private AndroidDeviceProfile? _deviceProfile;
     private string _activeAbi = "unknown";
     private AndroidTouchController? _touchController;
+    private AndroidExternalLinkLauncher? _externalLinkLauncher;
 
     protected override void OnCreate(Bundle? bundle)
     {
@@ -96,6 +98,11 @@ public class RuntimeActivity : AndroidGameActivity
         _touchController = new AndroidTouchController(_logger);
         MInput.KeyboardStateOverride = _touchController.ApplyKeyboardState;
         MInput.MouseStateOverride = _touchController.ApplyMouseState;
+        if (_logger != null)
+        {
+            _externalLinkLauncher = new AndroidExternalLinkLauncher(this, _logger);
+            CelesteExternalLinkBridge.Configure(_externalLinkLauncher.TryOpenUrl);
+        }
         _logger.Log(LogLevel.Info, "INPUT", "Touch controller enabled (Xbox-style virtual controls + map touch navigation)");
         AndroidCrashReporter.LogMemoryPressure(_logger, "RuntimeActivity OnCreate memory snapshot", _deviceProfile.ToContextString());
 
@@ -214,6 +221,8 @@ public class RuntimeActivity : AndroidGameActivity
         _services = null;
         _touchController?.Dispose();
         _touchController = null;
+        CelesteExternalLinkBridge.Clear();
+        _externalLinkLauncher = null;
         MInput.KeyboardStateOverride = null;
         MInput.MouseStateOverride = null;
         _logger?.Log(LogLevel.Info, "APP", "RUNTIME_SESSION_END");

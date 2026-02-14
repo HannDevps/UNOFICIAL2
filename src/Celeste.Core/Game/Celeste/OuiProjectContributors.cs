@@ -1,4 +1,5 @@
 using System.Collections;
+using Celeste.Core.Platform.Interop;
 using Microsoft.Xna.Framework;
 using Monocle;
 
@@ -100,18 +101,20 @@ public class OuiProjectContributors : Oui
 		menu.MinWidth = 1520f;
 		menu.ItemSpacing = 12f;
 		menu.Position = position;
-		menu.Add(new TextMenu.Header(Dialog.Clean("contributors_title")));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_intro"), 1360, 0.72f, selectable: true));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_origin"), 1360, 0.72f, selectable: true));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_goal"), 1360, 0.72f, selectable: true));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_thanks"), 1360, 0.72f, selectable: true));
-		menu.Add(new TextMenu.SubHeader(Dialog.Clean("contributors_special_thanks_title")));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_special_thanks_list"), 1360, 0.72f, selectable: true));
-		menu.Add(new TextMenu.SubHeader(Dialog.Clean("contributors_discord_title")));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_invite"), 1360, 0.72f, selectable: true));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_discord_mads_label") + ": " + MadsStudiosDiscordUrl, 1360, 0.66f, selectable: true));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("contributors_discord_partner_label") + ": " + PartnerDiscordUrl, 1360, 0.66f, selectable: true));
-		menu.Add(new TextMenu.Button(Dialog.Clean("contributors_back")).Pressed(OnBack));
+		menu.Add(new TextMenu.Header(ProjectTabsLocalization.Get("contributors_title")));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_intro"), 1360, 0.72f, selectable: true));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_origin"), 1360, 0.72f, selectable: true));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_goal"), 1360, 0.72f, selectable: true));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_thanks"), 1360, 0.72f, selectable: true));
+		menu.Add(new TextMenu.SubHeader(ProjectTabsLocalization.Get("contributors_special_thanks_title")));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_special_thanks_list"), 1360, 0.72f, selectable: true));
+		menu.Add(new TextMenu.SubHeader(ProjectTabsLocalization.Get("contributors_discord_title")));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_invite"), 1360, 0.72f, selectable: true));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_discord_mads_label") + ": " + MadsStudiosDiscordUrl, 1360, 0.66f, selectable: true));
+		menu.Add(new TextMenu.Button(ProjectTabsLocalization.Get("contributors_discord_button_mads")).Pressed(OnJoinMadsStudiosDiscord));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get("contributors_discord_partner_label") + ": " + PartnerDiscordUrl, 1360, 0.66f, selectable: true));
+		menu.Add(new TextMenu.Button(ProjectTabsLocalization.Get("contributors_discord_button_partner")).Pressed(OnJoinPartnerDiscord));
+		menu.Add(new TextMenu.Button(ProjectTabsLocalization.Get("contributors_back")).Pressed(OnBack));
 		if (selection >= menu.FirstPossibleSelection && selection <= menu.LastPossibleSelection)
 		{
 			menu.Selection = selection;
@@ -123,5 +126,23 @@ public class OuiProjectContributors : Oui
 	{
 		Audio.Play("event:/ui/main/button_back");
 		base.Overworld.Goto<OuiMainMenu>();
+	}
+
+	private void OnJoinMadsStudiosDiscord()
+	{
+		OpenDiscordInvite(MadsStudiosDiscordUrl);
+	}
+
+	private void OnJoinPartnerDiscord()
+	{
+		OpenDiscordInvite(PartnerDiscordUrl);
+	}
+
+	private void OpenDiscordInvite(string url)
+	{
+		if (!CelesteExternalLinkBridge.TryOpen(url))
+		{
+			Audio.Play("event:/ui/main/button_invalid");
+		}
 	}
 }

@@ -94,9 +94,9 @@ public class OuiMods : Oui
 		menu.MinWidth = 1280f;
 		menu.ItemSpacing = 12f;
 		menu.Position = position;
-		menu.Add(new TextMenu.Header(Dialog.Clean("mods_title")));
-		menu.Add(new TextMenuWrappedText(Dialog.Clean("mods_status"), 1120, 0.85f));
-		menu.Add(new TextMenu.Button(Dialog.Clean("mods_back")).Pressed(OnBack));
+		menu.Add(new TextMenu.Header(ProjectTabsLocalization.Get("mods_title")));
+		menu.Add(new TextMenuWrappedText(ProjectTabsLocalization.Get(ProjectTabsLocalization.ModsStatusDevKey), 1120, 0.85f, selectable: true));
+		menu.Add(new TextMenu.Button(ProjectTabsLocalization.Get("mods_back")).Pressed(OnBack));
 		base.Scene.Add(menu);
 	}
 
