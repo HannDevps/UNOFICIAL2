@@ -399,16 +399,14 @@ public static class MenuOptions
 			Draw.Circle(leftCenter, leftRadiusPx * 1.05f, new Color(43, 63, 92) * 0.72f * eased, 42);
 			Draw.Circle(leftCenter, leftRadiusPx * 0.5f, new Color(178, 208, 235) * 0.75f * eased, 32);
 			float shoulderYPos = shoulderCenter.Y;
-			Draw.Circle(new Vector2(width * 0.23f, shoulderYPos), buttonRadiusPx * 0.85f, new Color(132, 144, 166) * 0.9f * eased, 28);
-			Draw.Circle(new Vector2(width * 0.77f, shoulderYPos), buttonRadiusPx * 0.85f, new Color(132, 144, 166) * 0.9f * eased, 28);
 			Draw.Circle(new Vector2(width * 0.1f, shoulderYPos * 0.9f), buttonRadiusPx * 0.75f, new Color(106, 120, 142) * 0.9f * eased, 28);
-			Draw.Circle(new Vector2(width * 0.9f, shoulderYPos * 0.9f), buttonRadiusPx * 0.75f, new Color(106, 120, 142) * 0.9f * eased, 28);
-			Draw.Circle(new Vector2(width * 0.43f, startSelectCenter.Y), buttonRadiusPx * 0.68f, new Color(88, 102, 128) * 0.9f * eased, 28);
-			Draw.Circle(new Vector2(width * 0.57f, startSelectCenter.Y), buttonRadiusPx * 0.68f, new Color(88, 102, 128) * 0.9f * eased, 28);
+			Draw.Circle(new Vector2(width * 0.79f, startSelectCenter.Y), buttonRadiusPx * 0.68f, new Color(88, 102, 128) * 0.9f * eased, 28);
+			Draw.Circle(new Vector2(width * 0.93f, startSelectCenter.Y), buttonRadiusPx * 0.68f, new Color(88, 102, 128) * 0.9f * eased, 28);
 			Draw.Circle(actionCenter, buttonRadiusPx * 2.15f, new Color(58, 48, 74) * 0.35f * eased, 48);
 			Draw.Circle(aCenter, buttonRadiusPx, new Color(58, 182, 102) * 0.9f * eased, 30);
 			Draw.Circle(bCenter, buttonRadiusPx, new Color(217, 86, 89) * 0.9f * eased, 30);
 			Draw.Circle(xCenter, buttonRadiusPx, new Color(79, 153, 243) * 0.9f * eased, 30);
+			Draw.Circle(yCenter, buttonRadiusPx, new Color(223, 192, 63) * 0.9f * eased, 30);
 
 			Color handleColor = dragTarget switch
 			{
@@ -425,7 +423,7 @@ public static class MenuOptions
 			DrawHandleTag(leftCenter, "LS", dragTarget == DragTarget.LeftStick, eased, new Vector2(0f, -leftRadiusPx * 1.45f));
 			DrawHandleTag(shoulderCenter, "SH", dragTarget == DragTarget.ShoulderCluster, eased, new Vector2(0f, -buttonRadiusPx * 1.9f));
 			DrawHandleTag(startSelectCenter, "ST", dragTarget == DragTarget.StartSelectCluster, eased, new Vector2(0f, -buttonRadiusPx * 1.85f));
-			DrawHandleTag(actionCenter, "ABX", dragTarget == DragTarget.ActionCluster, eased, new Vector2(0f, -buttonRadiusPx * 2.65f));
+			DrawHandleTag(actionCenter, "ABXY", dragTarget == DragTarget.ActionCluster, eased, new Vector2(0f, -buttonRadiusPx * 2.65f));
 
 			ActiveFont.DrawOutline(RuntimeText("runtime_touch_editor_title"), new Vector2(width * 0.5f, 74f), new Vector2(0.5f, 0.5f), Vector2.One * 0.9f, Color.White * eased, 2f, Color.Black * eased);
 			ActiveFont.DrawOutline(RuntimeText("runtime_touch_editor_hint_drag"), new Vector2(width * 0.5f, 118f), new Vector2(0.5f, 0.5f), Vector2.One * 0.55f, new Color(212, 224, 238) * eased, 2f, Color.Black * eased);
@@ -462,7 +460,7 @@ public static class MenuOptions
 		{
 			return "LS " + ToPercent(leftX) + "," + ToPercent(leftY)
 				+ "  TOP " + ToPercent(shoulderY) + "/" + ToPercent(startSelectY)
-				+ "  ABX " + ToPercent(actionX) + "," + ToPercent(actionY)
+				+ "  ABXY " + ToPercent(actionX) + "," + ToPercent(actionY)
 				+ "  SCALE " + ToPercent(scale)
 				+ "  SNAP " + (snapToAnchors ? RuntimeText("runtime_value_on") : RuntimeText("runtime_value_off"))
 				+ "  PRECISE " + (precisionMode ? RuntimeText("runtime_value_on") : RuntimeText("runtime_value_off"));
@@ -1255,7 +1253,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Estilo dos Icons", 
 				"runtime_touch_editor_open" => "Editor Visual Touch", 
 				"runtime_touch_editor_title" => "EDITOR VISUAL TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Arraste analogico esquerdo, botoes superiores e grupo ABX.", 
+				"runtime_touch_editor_hint_drag" => "Arraste analogico esquerdo, botoes superiores e grupo ABXY.", 
 				"runtime_touch_editor_hint_pinch" => "Use pinch com dois dedos para ajustar escala.", 
 				"runtime_touch_editor_reset" => "Redefinir", 
 				"runtime_touch_editor_done" => "Concluir", 
@@ -1340,7 +1338,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Estilo de Iconos", 
 				"runtime_touch_editor_open" => "Editor Visual Touch", 
 				"runtime_touch_editor_title" => "EDITOR VISUAL TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Arrastra stick izquierdo, botones superiores y grupo ABX.", 
+				"runtime_touch_editor_hint_drag" => "Arrastra stick izquierdo, botones superiores y grupo ABXY.", 
 				"runtime_touch_editor_hint_pinch" => "Usa pinch con dos dedos para la escala.", 
 				"runtime_touch_editor_reset" => "Restablecer", 
 				"runtime_touch_editor_done" => "Listo", 
@@ -1425,7 +1423,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Style des Icones", 
 				"runtime_touch_editor_open" => "Editeur Visuel Touch", 
 				"runtime_touch_editor_title" => "EDITEUR VISUEL TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Glissez stick gauche, boutons du haut et groupe ABX.", 
+				"runtime_touch_editor_hint_drag" => "Glissez stick gauche, boutons du haut et groupe ABXY.", 
 				"runtime_touch_editor_hint_pinch" => "Utilisez un pinch a deux doigts pour l echelle.", 
 				"runtime_touch_editor_reset" => "Reinitialiser", 
 				"runtime_touch_editor_done" => "Terminer", 
@@ -1510,7 +1508,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Icon-Stil", 
 				"runtime_touch_editor_open" => "Touch-Layout Editor", 
 				"runtime_touch_editor_title" => "TOUCH LAYOUT EDITOR", 
-				"runtime_touch_editor_hint_drag" => "Ziehe linken Stick, obere Tasten und ABX-Gruppe.", 
+				"runtime_touch_editor_hint_drag" => "Ziehe linken Stick, obere Tasten und ABXY-Gruppe.", 
 				"runtime_touch_editor_hint_pinch" => "Nutze Zwei-Finger-Pinch fur die Skalierung.", 
 				"runtime_touch_editor_reset" => "Zurucksetzen", 
 				"runtime_touch_editor_done" => "Fertig", 
@@ -1595,7 +1593,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Stile Icone", 
 				"runtime_touch_editor_open" => "Editor Visuale Touch", 
 				"runtime_touch_editor_title" => "EDITOR VISUALE TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Trascina stick sinistro, tasti superiori e gruppo ABX.", 
+				"runtime_touch_editor_hint_drag" => "Trascina stick sinistro, tasti superiori e gruppo ABXY.", 
 				"runtime_touch_editor_hint_pinch" => "Usa pinch a due dita per la scala.", 
 				"runtime_touch_editor_reset" => "Reimposta", 
 				"runtime_touch_editor_done" => "Fine", 
@@ -1680,7 +1678,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Icon Style", 
 				"runtime_touch_editor_open" => "Open Touch Layout Editor", 
 				"runtime_touch_editor_title" => "TOUCH LAYOUT EDITOR", 
-				"runtime_touch_editor_hint_drag" => "Drag left stick, top buttons, and ABX cluster.", 
+				"runtime_touch_editor_hint_drag" => "Drag left stick, top buttons, and ABXY cluster.", 
 				"runtime_touch_editor_hint_pinch" => "Use two-finger pinch to change scale.", 
 				"runtime_touch_editor_reset" => "Reset", 
 				"runtime_touch_editor_done" => "Done", 

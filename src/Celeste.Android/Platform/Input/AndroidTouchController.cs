@@ -43,8 +43,8 @@ public sealed class AndroidTouchController : IDisposable
     private bool _buttonA;
     private bool _buttonB;
     private bool _buttonX;
+    private bool _buttonY;
     private bool _leftTrigger;
-    private bool _rightTrigger;
     private bool _buttonStart;
     private bool _buttonBack;
 
@@ -73,9 +73,9 @@ public sealed class AndroidTouchController : IDisposable
     private Vector2 _buttonCenterA;
     private Vector2 _buttonCenterB;
     private Vector2 _buttonCenterX;
+    private Vector2 _buttonCenterY;
 
     private Vector2 _leftTriggerCenter;
-    private Vector2 _rightTriggerCenter;
     private Vector2 _startCenter;
     private Vector2 _backCenter;
 
@@ -217,11 +217,11 @@ public sealed class AndroidTouchController : IDisposable
         DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterA, _buttonRadius, "A", _buttonA, new Color(58, 182, 102), alpha, "FACE_A");
         DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterB, _buttonRadius, "B", _buttonB, new Color(217, 86, 89), alpha, "FACE_B");
         DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterX, _buttonRadius, "X", _buttonX, new Color(79, 153, 243), alpha, "FACE_X");
+        DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterY, _buttonRadius, "RT", _buttonY, new Color(223, 192, 63), alpha, "RT");
 
         if (_config.TouchEnableShoulders)
         {
             DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _leftTriggerCenter, _buttonRadius * 0.75f, "LT", _leftTrigger, new Color(102, 118, 140), alpha, "LT");
-            DrawDigitalButton(spriteBatch, font, fallbackFont, pixel, _rightTriggerCenter, _buttonRadius * 0.75f, "RT", _rightTrigger, new Color(102, 118, 140), alpha, "RT");
         }
 
         if (_config.TouchEnableStartSelect)
@@ -242,8 +242,8 @@ public sealed class AndroidTouchController : IDisposable
         _buttonA = false;
         _buttonB = false;
         _buttonX = false;
+        _buttonY = false;
         _leftTrigger = false;
-        _rightTrigger = false;
         _buttonStart = false;
         _buttonBack = false;
         _menuPulseLeft = false;
@@ -299,11 +299,11 @@ public sealed class AndroidTouchController : IDisposable
             _buttonA |= IsInsideCircle(pos, _buttonCenterA, _buttonRadius);
             _buttonB |= IsInsideCircle(pos, _buttonCenterB, _buttonRadius);
             _buttonX |= IsInsideCircle(pos, _buttonCenterX, _buttonRadius);
+            _buttonY |= IsInsideCircle(pos, _buttonCenterY, _buttonRadius);
 
             if (_config.TouchEnableShoulders)
             {
                 _leftTrigger |= IsInsideCircle(pos, _leftTriggerCenter, _buttonRadius * 0.85f);
-                _rightTrigger |= IsInsideCircle(pos, _rightTriggerCenter, _buttonRadius * 0.85f);
             }
 
             if (_config.TouchEnableStartSelect)
@@ -533,7 +533,7 @@ public sealed class AndroidTouchController : IDisposable
             AddUnique(merged, ref count, map.Dash);
             AddUnique(merged, ref count, map.Talk);
         }
-        if (_leftTrigger || _rightTrigger) AddUnique(merged, ref count, map.Grab);
+        if (_leftTrigger || _buttonY) AddUnique(merged, ref count, map.Grab);
         if (_buttonStart) AddUnique(merged, ref count, map.Pause);
         if (_buttonBack) AddUnique(merged, ref count, map.Pause);
 
@@ -670,13 +670,13 @@ public sealed class AndroidTouchController : IDisposable
         _buttonCenterA = _actionCenter + new Vector2(0f, _actionSpacing);
         _buttonCenterB = _actionCenter + new Vector2(_actionSpacing, 0f);
         _buttonCenterX = _actionCenter + new Vector2(-_actionSpacing, 0f);
+        _buttonCenterY = _actionCenter + new Vector2(0f, -_actionSpacing);
 
         float shoulderY = height * Math.Clamp(_config.TouchShoulderY, 0.06f, 0.3f);
         _leftTriggerCenter = new Vector2(width * 0.1f, shoulderY * 0.9f);
-        _rightTriggerCenter = new Vector2(width * 0.9f, shoulderY * 0.9f);
         float startSelectY = height * Math.Clamp(_config.TouchStartSelectY, 0.06f, 0.3f);
-        _backCenter = new Vector2(width * 0.43f, startSelectY);
-        _startCenter = new Vector2(width * 0.57f, startSelectY);
+        _backCenter = new Vector2(width * 0.79f, startSelectY);
+        _startCenter = new Vector2(width * 0.93f, startSelectY);
     }
 
     private bool IsExternalInputConnected()
