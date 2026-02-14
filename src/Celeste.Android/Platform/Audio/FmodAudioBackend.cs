@@ -5,7 +5,8 @@ using Android.OS;
 using Android.Runtime;
 using Celeste.Core.Platform.Audio;
 using Celeste.Core.Platform.Logging;
-using Java.Lang;
+using JavaSystem = Java.Lang.JavaSystem;
+using JavaUnsatisfiedLinkError = Java.Lang.UnsatisfiedLinkError;
 
 namespace Celeste.Android.Platform.Audio;
 
@@ -192,7 +193,7 @@ public sealed class FmodAudioBackend : IAudioBackend
             _logger.Log(LogLevel.Info, "FMOD", $"Native FMOD library loaded: {libraryName}");
             return true;
         }
-        catch (UnsatisfiedLinkError exception)
+        catch (JavaUnsatisfiedLinkError exception)
         {
             if (exception.Message?.IndexOf("already loaded", StringComparison.OrdinalIgnoreCase) >= 0)
             {
