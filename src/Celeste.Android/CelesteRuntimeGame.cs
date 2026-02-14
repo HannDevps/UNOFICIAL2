@@ -889,7 +889,7 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
 
         if (update.TouchButtonRadius.HasValue)
         {
-            float touchButtonRadius = Math.Clamp(update.TouchButtonRadius.Value, 0.05f, 0.14f);
+            float touchButtonRadius = Math.Clamp(update.TouchButtonRadius.Value, 0.08f, 0.14f);
             if (Math.Abs(_gameConfig.TouchButtonRadius - touchButtonRadius) > 0.0001f)
             {
                 _gameConfig.TouchButtonRadius = touchButtonRadius;
@@ -1029,20 +1029,8 @@ public sealed class CelesteRuntimeGame : global::Celeste.Celeste, IAndroidGameLi
 
     private void ApplyInputPromptProfile()
     {
-        string prefix = _gameConfig.TouchButtonProfile switch
-        {
-            RuntimeTouchButtonProfiles.PlayStation => "ps4",
-            _ => "xb1",
-        };
-
-        string style = _gameConfig.TouchPromptStyle switch
-        {
-            RuntimeTouchPromptStyles.Alt2 => "alt2",
-            _ => "alt",
-        };
-
-        global::Celeste.Input.SetPreferredControllerPrefix(prefix);
-        global::Celeste.Input.SetPreferredControllerPromptStyle(style);
+        global::Celeste.Input.SetPreferredControllerPrefix("xb1");
+        global::Celeste.Input.SetPreferredControllerPromptStyle("alt");
     }
 
     private static RuntimeUiTouchButtonProfiles ToUiTouchButtonProfile(RuntimeTouchButtonProfiles profile)

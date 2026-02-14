@@ -100,7 +100,7 @@ public sealed class RuntimeUiConfigSnapshot
 
     public bool TouchEnableShoulders { get; set; } = true;
 
-    public bool TouchEnableDpad { get; set; } = true;
+    public bool TouchEnableDpad { get; set; } = false;
 
     public bool TouchEnableStartSelect { get; set; } = true;
 
@@ -114,7 +114,7 @@ public sealed class RuntimeUiConfigSnapshot
 
     public float TouchLeftStickRadius { get; set; } = 0.12f;
 
-    public float TouchLeftStickDeadzone { get; set; } = 0.26f;
+    public float TouchLeftStickDeadzone { get; set; } = 0.18f;
 
     public float TouchDpadX { get; set; } = 0.18f;
 
@@ -128,7 +128,7 @@ public sealed class RuntimeUiConfigSnapshot
 
     public float TouchActionY { get; set; } = 0.74f;
 
-    public float TouchButtonRadius { get; set; } = 0.07f;
+    public float TouchButtonRadius { get; set; } = 0.085f;
 
     public float TouchActionSpacing { get; set; } = 1.35f;
 

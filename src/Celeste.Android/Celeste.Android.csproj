@@ -18,12 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AndroidAsset Include="..\..\InputPromptsPack_V7_UnrealPack\Source\XGamepad\Alt\*.png"
-                  Link="InputPromptsPack_V7_UnrealPack/Source/XGamepad/Alt/%(Filename)%(Extension)" />
-    <AndroidAsset Include="..\..\InputPromptsPack_V7_UnrealPack\Source\XGamepad\Alt 2\*.png"
-                  Link="InputPromptsPack_V7_UnrealPack/Source/XGamepad/Alt 2/%(Filename)%(Extension)" />
-    <AndroidAsset Include="..\..\InputPromptsPack_V7_UnrealPack\Source\P4Gamepad\Alt\*.png"
-                  Link="InputPromptsPack_V7_UnrealPack/Source/P4Gamepad/Alt/%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\CONTROLES CELESTE\*.png"
+                  Link="controls_custom/%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

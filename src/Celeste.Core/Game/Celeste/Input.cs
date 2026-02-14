@@ -83,68 +83,13 @@ public static class Input
 
 	private static readonly Dictionary<string, string[]> xboxAltPromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
 	{
-		{ "A", new string[2] { "XGamepad/Alt/T_X_A_Color_Alt.png", "XGamepad/Alt/T_X_A_White_Alt.png" } },
-		{ "B", new string[2] { "XGamepad/Alt/T_X_B_Color_Alt.png", "XGamepad/Alt/T_X_B_White_Alt.png" } },
-		{ "X", new string[2] { "XGamepad/Alt/T_X_X_Color_Alt.png", "XGamepad/Alt/T_X_X_White_Alt.png" } },
-		{ "Y", new string[2] { "XGamepad/Alt/T_X_Y_Color_Alt.png", "XGamepad/Alt/T_X_Y_White_Alt.png" } },
-		{ "LeftShoulder", new string[1] { "XGamepad/Alt/T_X_LB_Alt.png" } },
-		{ "RightShoulder", new string[1] { "XGamepad/Alt/T_X_RB_Alt.png" } },
-		{ "LeftTrigger", new string[1] { "XGamepad/Alt/T_X_LT_Alt.png" } },
-		{ "RightTrigger", new string[1] { "XGamepad/Alt/T_X_RT_Alt.png" } },
-		{ "DPadLeft", new string[1] { "XGamepad/Alt/T_X_Dpad_Left_Alt.png" } },
-		{ "DPadRight", new string[1] { "XGamepad/Alt/T_X_Dpad_Right_Alt.png" } },
-		{ "DPadUp", new string[1] { "XGamepad/Alt/T_X_Dpad_Up_Alt.png" } },
-		{ "DPadDown", new string[1] { "XGamepad/Alt/T_X_Dpad_Down_Alt.png" } },
-		{ "Start", new string[2] { "XGamepad/Alt/T_X_Share_Alt-1.png", "XGamepad/Alt/T_X_Share_Alt.png" } },
-		{ "Back", new string[1] { "XGamepad/Alt/T_X_Share_Alt.png" } },
-		{ "LeftThumbstickLeft", new string[1] { "XGamepad/Alt/T_X_L_Left_Alt.png" } },
-		{ "LeftThumbstickRight", new string[1] { "XGamepad/Alt/T_X_L_Right_Alt.png" } },
-		{ "LeftThumbstickUp", new string[1] { "XGamepad/Alt/T_X_L_UP_Alt.png" } },
-		{ "LeftThumbstickDown", new string[1] { "XGamepad/Alt/T_X_L_Down_Alt.png" } }
-	};
-
-	private static readonly Dictionary<string, string[]> xboxAlt2PromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
-	{
-		{ "A", new string[2] { "XGamepad/Alt 2/T_X_A_Color_Alt_2.png", "XGamepad/Alt 2/T_X_A_White_Alt_2.png" } },
-		{ "B", new string[2] { "XGamepad/Alt 2/T_X_B_Color_Alt_2.png", "XGamepad/Alt 2/T_X_B_White_Alt_2.png" } },
-		{ "X", new string[2] { "XGamepad/Alt 2/T_X_X_Color_Alt_2.png", "XGamepad/Alt 2/T_X_X_White_Alt_2.png" } },
-		{ "Y", new string[2] { "XGamepad/Alt 2/T_X_Y_Color_Alt_2.png", "XGamepad/Alt 2/T_X_Y_White_Alt_2.png" } },
-		{ "LeftShoulder", new string[1] { "XGamepad/Alt 2/T_X_LB_Alt_2.png" } },
-		{ "RightShoulder", new string[1] { "XGamepad/Alt 2/T_X_RB_Alt_2.png" } },
-		{ "LeftTrigger", new string[1] { "XGamepad/Alt 2/T_X_LT_Alt_2.png" } },
-		{ "RightTrigger", new string[1] { "XGamepad/Alt 2/T_X_RT_Alt_2.png" } },
-		{ "DPadLeft", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Left_Alt_2.png" } },
-		{ "DPadRight", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Right_Alt_2.png" } },
-		{ "DPadUp", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Up_Alt_2.png" } },
-		{ "DPadDown", new string[1] { "XGamepad/Alt 2/T_X_Dpad_Down_Alt_2.png" } },
-		{ "Start", new string[2] { "XGamepad/Alt 2/T_X_Share_Alt_2-1.png", "XGamepad/Alt 2/T_X_Share_Alt_2.png" } },
-		{ "Back", new string[1] { "XGamepad/Alt 2/T_X_Share_Alt_2.png" } },
-		{ "LeftThumbstickLeft", new string[1] { "XGamepad/Alt 2/T_X_L_Left_Alt_2.png" } },
-		{ "LeftThumbstickRight", new string[1] { "XGamepad/Alt 2/T_X_L_Right_Alt_2.png" } },
-		{ "LeftThumbstickUp", new string[1] { "XGamepad/Alt 2/T_X_L_UP_Alt_2.png" } },
-		{ "LeftThumbstickDown", new string[1] { "XGamepad/Alt 2/T_X_L_Down_Alt_2.png" } }
-	};
-
-	private static readonly Dictionary<string, string[]> playStationAltPromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
-	{
-		{ "A", new string[2] { "P4Gamepad/Alt/T_P4_Cross_Color_Alt.png", "P4Gamepad/Alt/T_P4_Cross_Alt.png" } },
-		{ "B", new string[2] { "P4Gamepad/Alt/T_P4_Circle_Color_Alt.png", "P4Gamepad/Alt/T_P4_Circle_Alt.png" } },
-		{ "X", new string[2] { "P4Gamepad/Alt/T_P4_Square_Color_Alt.png", "P4Gamepad/Alt/T_P4_Square_Alt.png" } },
-		{ "Y", new string[2] { "P4Gamepad/Alt/T_P4_Triangle_Color_Alt.png", "P4Gamepad/Alt/T_P4_Triangle_Alt.png" } },
-		{ "LeftShoulder", new string[1] { "P4Gamepad/Alt/T_P4_L1_Alt.png" } },
-		{ "RightShoulder", new string[1] { "P4Gamepad/Alt/T_P4_R1_Alt.png" } },
-		{ "LeftTrigger", new string[1] { "P4Gamepad/Alt/T_P4_L2_Alt.png" } },
-		{ "RightTrigger", new string[1] { "P4Gamepad/Alt/T_P4_R2_Alt.png" } },
-		{ "DPadLeft", new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Left_Alt.png" } },
-		{ "DPadRight", new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Right_Alt.png" } },
-		{ "DPadUp", new string[2] { "P4Gamepad/Alt/T_P4_Dpad_UP_Alt.png", "P4Gamepad/Alt/T_P4_Dpad_Up_Alt.png" } },
-		{ "DPadDown", new string[1] { "P4Gamepad/Alt/T_P4_Dpad_Down_Alt.png" } },
-		{ "Start", new string[1] { "P4Gamepad/Alt/T_P4_Options_Alt.png" } },
-		{ "Back", new string[1] { "P4Gamepad/Alt/T_P4_Share_Alt.png" } },
-		{ "LeftThumbstickLeft", new string[1] { "P4Gamepad/Alt/T_P4_L_Left_Alt.png" } },
-		{ "LeftThumbstickRight", new string[1] { "P4Gamepad/Alt/T_P4_L_Right_Alt.png" } },
-		{ "LeftThumbstickUp", new string[1] { "P4Gamepad/Alt/T_P4_L_UP_Alt.png" } },
-		{ "LeftThumbstickDown", new string[1] { "P4Gamepad/Alt/T_P4_L_Down_Alt.png" } }
+		{ "A", new string[2] { "CONTROLES CELESTE/pular.png", "controls_custom/pular.png" } },
+		{ "B", new string[2] { "CONTROLES CELESTE/dash-back.png", "controls_custom/dash-back.png" } },
+		{ "X", new string[2] { "CONTROLES CELESTE/dash.png", "controls_custom/dash.png" } },
+		{ "LeftTrigger", new string[2] { "CONTROLES CELESTE/agarrar.png", "controls_custom/agarrar.png" } },
+		{ "RightTrigger", new string[2] { "CONTROLES CELESTE/agarrar2.png", "controls_custom/agarrar2.png" } },
+		{ "Start", new string[2] { "CONTROLES CELESTE/pause-start.png", "controls_custom/pause-start.png" } },
+		{ "Back", new string[2] { "CONTROLES CELESTE/select.png", "controls_custom/select.png" } }
 	};
 
 	private static float[] rumbleStrengths = new float[4] { 0.15f, 0.4f, 1f, 0.05f };
@@ -704,19 +649,9 @@ public static class Input
 		return false;
 	}
 
-	private static bool TryGetPromptCandidates(string prefix, string style, string input, out string[] candidates)
+	private static bool TryGetPromptCandidates(string _prefix, string _style, string input, out string[] candidates)
 	{
 		candidates = null;
-		if (prefix.Equals("ps4", StringComparison.OrdinalIgnoreCase))
-		{
-			return playStationAltPromptLookup.TryGetValue(input, out candidates);
-		}
-
-		if (style.Equals("alt2", StringComparison.OrdinalIgnoreCase) || style.Equals("alt_2", StringComparison.OrdinalIgnoreCase) || style.Equals("alt 2", StringComparison.OrdinalIgnoreCase))
-		{
-			return xboxAlt2PromptLookup.TryGetValue(input, out candidates);
-		}
-
 		return xboxAltPromptLookup.TryGetValue(input, out candidates);
 	}
 
@@ -728,24 +663,24 @@ public static class Input
 			DirectoryInfo directoryInfo = new DirectoryInfo(Environment.CurrentDirectory);
 			for (int i = 0; i < 6 && directoryInfo != null; i++)
 			{
-				roots.Add(Path.Combine(directoryInfo.FullName, "InputPromptsPack_V7_UnrealPack", "Source"));
-				roots.Add(Path.Combine(directoryInfo.FullName, "CELESTEPORT", "InputPromptsPack_V7_UnrealPack", "Source"));
+				roots.Add(directoryInfo.FullName);
+				roots.Add(Path.Combine(directoryInfo.FullName, "CELESTEPORT"));
 				directoryInfo = directoryInfo.Parent;
 			}
 		}
 
 		if (!string.IsNullOrWhiteSpace(AppContext.BaseDirectory))
 		{
-			roots.Add(Path.Combine(AppContext.BaseDirectory, "InputPromptsPack_V7_UnrealPack", "Source"));
+			roots.Add(AppContext.BaseDirectory);
 		}
 
 		if (!string.IsNullOrWhiteSpace(Engine.ContentDirectory))
 		{
-			roots.Add(Path.Combine(Engine.ContentDirectory, "InputPromptsPack_V7_UnrealPack", "Source"));
+			roots.Add(Engine.ContentDirectory);
 		}
 
-		roots.Add(Path.Combine("/data/celeste.app/Files", "InputPromptsPack_V7_UnrealPack", "Source"));
-		roots.Add(Path.Combine("/data/celeste.app/Files/Config", "InputPromptsPack_V7_UnrealPack", "Source"));
+		roots.Add("/data/celeste.app/Files");
+		roots.Add("/data/celeste.app/Files/Config");
 
 		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		for (int i = 0; i < roots.Count; i++)

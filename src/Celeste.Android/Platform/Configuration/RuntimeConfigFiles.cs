@@ -126,7 +126,7 @@ public sealed class RuntimeGameConfig
 
 	public bool TouchEnableShoulders { get; set; } = true;
 
-	public bool TouchEnableDpad { get; set; } = true;
+	public bool TouchEnableDpad { get; set; } = false;
 
 	public bool TouchEnableStartSelect { get; set; } = true;
 
@@ -140,7 +140,7 @@ public sealed class RuntimeGameConfig
 
 	public float TouchLeftStickRadius { get; set; } = 0.12f;
 
-	public float TouchLeftStickDeadzone { get; set; } = 0.26f;
+	public float TouchLeftStickDeadzone { get; set; } = 0.18f;
 
 	public float TouchDpadX { get; set; } = 0.18f;
 
@@ -154,7 +154,7 @@ public sealed class RuntimeGameConfig
 
 	public float TouchActionY { get; set; } = 0.74f;
 
-	public float TouchButtonRadius { get; set; } = 0.07f;
+	public float TouchButtonRadius { get; set; } = 0.085f;
 
 	public float TouchActionSpacing { get; set; } = 1.35f;
 
@@ -620,7 +620,7 @@ public sealed class RuntimeGameConfigSource
 
 		if (TryGetFloat(values, "TouchButtonRadius", out float touchButtonRadius))
 		{
-			config.TouchButtonRadius = Math.Clamp(touchButtonRadius, 0.05f, 0.14f);
+			config.TouchButtonRadius = Math.Clamp(touchButtonRadius, 0.08f, 0.14f);
 		}
 
 		if (TryGetFloat(values, "TouchActionSpacing", out float touchActionSpacing))

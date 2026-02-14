@@ -40,8 +40,6 @@ public static class MenuOptions
 
 	private static readonly float[] RuntimeTouchLeftYValues = new float[9] { 0.56f, 0.62f, 0.68f, 0.72f, 0.76f, 0.8f, 0.84f, 0.88f, 0.92f };
 
-	private static readonly float[] RuntimeTouchDpadYValues = new float[10] { 0.34f, 0.4f, 0.46f, 0.52f, 0.56f, 0.62f, 0.68f, 0.74f, 0.8f, 0.86f };
-
 	private static readonly float[] RuntimeTouchTopYValues = new float[9] { 0.06f, 0.08f, 0.1f, 0.12f, 0.13f, 0.15f, 0.18f, 0.22f, 0.26f };
 
 	private static readonly float[] RuntimeTouchActionXValues = new float[9] { 0.58f, 0.63f, 0.68f, 0.73f, 0.78f, 0.82f, 0.86f, 0.9f, 0.94f };
@@ -96,25 +94,6 @@ public static class MenuOptions
 						update.TouchTapMenuNavigation = on;
 					});
 				}));
-				Option<int> styleSlider = new Slider(RuntimeText("runtime_touch_style"), (int i) => (i == 1) ? RuntimeText("runtime_value_alt_2") : RuntimeText("runtime_value_alt"), 0, 1, (snapshot.TouchPromptStyle == RuntimeUiTouchPromptStyles.Alt2) ? 1 : 0).Change(delegate(int i)
-				{
-					ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
-					{
-						update.TouchPromptStyle = ((i == 1) ? RuntimeUiTouchPromptStyles.Alt2 : RuntimeUiTouchPromptStyles.Alt);
-					});
-				});
-				styleSlider.Visible = snapshot.TouchButtonProfile == RuntimeUiTouchButtonProfiles.Xbox;
-				Add(new Slider(RuntimeText("runtime_touch_profile"), (int i) => (i == 1) ? RuntimeText("runtime_value_playstation") : RuntimeText("runtime_value_xbox"), 0, 1, (snapshot.TouchButtonProfile == RuntimeUiTouchButtonProfiles.PlayStation) ? 1 : 0).Change(delegate(int i)
-				{
-					RuntimeUiTouchButtonProfiles selectedProfile = (i == 1) ? RuntimeUiTouchButtonProfiles.PlayStation : RuntimeUiTouchButtonProfiles.Xbox;
-					styleSlider.Visible = selectedProfile == RuntimeUiTouchButtonProfiles.Xbox;
-					RecalculateSize();
-					ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
-					{
-						update.TouchButtonProfile = selectedProfile;
-					});
-				}));
-				Add(styleSlider);
 				Add(new Button(RuntimeText("runtime_touch_editor_open")).Pressed(delegate
 				{
 					Focused = false;
@@ -130,13 +109,6 @@ public static class MenuOptions
 					};
 				}));
 				Add(new SubHeader(RuntimeText("runtime_touch_layout")));
-				Add(new OnOff(RuntimeText("runtime_touch_dpad"), snapshot.TouchEnableDpad).Change(delegate(bool on)
-				{
-					ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
-					{
-						update.TouchEnableDpad = on;
-					});
-				}));
 				Add(new OnOff(RuntimeText("runtime_touch_shoulders"), snapshot.TouchEnableShoulders).Change(delegate(bool on)
 				{
 					ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
@@ -216,22 +188,6 @@ public static class MenuOptions
 						update.TouchLeftStickY = RuntimeTouchLeftYValues[Math.Clamp(i, 0, RuntimeTouchLeftYValues.Length - 1)];
 					});
 				}));
-				int touchDpadXIndex = FindNearestIndex(RuntimeTouchLeftXValues, snapshot.TouchDpadX);
-				Add(new Slider(RuntimeText("runtime_touch_dpad_x"), (int i) => (RuntimeTouchLeftXValues[Math.Clamp(i, 0, RuntimeTouchLeftXValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchLeftXValues.Length - 1, touchDpadXIndex).Change(delegate(int i)
-				{
-					ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
-					{
-						update.TouchDpadX = RuntimeTouchLeftXValues[Math.Clamp(i, 0, RuntimeTouchLeftXValues.Length - 1)];
-					});
-				}));
-				int touchDpadYIndex = FindNearestIndex(RuntimeTouchDpadYValues, snapshot.TouchDpadY);
-				Add(new Slider(RuntimeText("runtime_touch_dpad_y"), (int i) => (RuntimeTouchDpadYValues[Math.Clamp(i, 0, RuntimeTouchDpadYValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchDpadYValues.Length - 1, touchDpadYIndex).Change(delegate(int i)
-				{
-					ApplyRuntimeUpdate(delegate(RuntimeUiConfigUpdate update)
-					{
-						update.TouchDpadY = RuntimeTouchDpadYValues[Math.Clamp(i, 0, RuntimeTouchDpadYValues.Length - 1)];
-					});
-				}));
 				Add(new SubHeader(RuntimeText("runtime_touch_actions")));
 				int touchButtonRadiusIndex = FindNearestIndex(RuntimeTouchButtonRadiusValues, snapshot.TouchButtonRadius);
 				Add(new Slider(RuntimeText("runtime_touch_button_radius"), (int i) => (RuntimeTouchButtonRadiusValues[Math.Clamp(i, 0, RuntimeTouchButtonRadiusValues.Length - 1)] * 100f).ToString("0", CultureInfo.InvariantCulture) + "%", 0, RuntimeTouchButtonRadiusValues.Length - 1, touchButtonRadiusIndex).Change(delegate(int i)
@@ -304,7 +260,6 @@ public static class MenuOptions
 		{
 			None,
 			LeftStick,
-			DpadCluster,
 			ShoulderCluster,
 			StartSelectCluster,
 			ActionCluster
@@ -327,10 +282,6 @@ public static class MenuOptions
 		private float actionX = 0.82f;
 
 		private float actionY = 0.74f;
-
-		private float dpadX = 0.18f;
-
-		private float dpadY = 0.56f;
 
 		private float shoulderY = 0.13f;
 
@@ -372,10 +323,6 @@ public static class MenuOptions
 
 		private float dragStartActionY;
 
-		private float dragStartDpadX;
-
-		private float dragStartDpadY;
-
 		private float dragStartShoulderY;
 
 		private float dragStartStartSelectY;
@@ -391,8 +338,6 @@ public static class MenuOptions
 				leftY = snapshot.TouchLeftStickY;
 				actionX = snapshot.TouchActionX;
 				actionY = snapshot.TouchActionY;
-				dpadX = snapshot.TouchDpadX;
-				dpadY = snapshot.TouchDpadY;
 				shoulderY = snapshot.TouchShoulderY;
 				startSelectY = snapshot.TouchStartSelectY;
 				scale = snapshot.TouchScale;
@@ -444,7 +389,7 @@ public static class MenuOptions
 
 			float width = Engine.Width;
 			float height = Engine.Height;
-			ResolvePreviewLayout(width, height, out var leftCenter, out var dpadCenter, out var shoulderCenter, out var startSelectCenter, out var actionCenter, out var aCenter, out var bCenter, out var xCenter, out var yCenter, out float leftRadiusPx, out float dpadRadiusPx, out float buttonRadiusPx);
+			ResolvePreviewLayout(width, height, out var leftCenter, out var shoulderCenter, out var startSelectCenter, out var actionCenter, out var aCenter, out var bCenter, out var xCenter, out var yCenter, out float leftRadiusPx, out float buttonRadiusPx);
 
 			Draw.Rect(width * 0.06f, height * 0.4f, width * (0.45f - 0.06f), height * (0.95f - 0.4f), new Color(45, 68, 96) * 0.23f * eased);
 			Draw.HollowRect(width * 0.06f, height * 0.4f, width * (0.45f - 0.06f), height * (0.95f - 0.4f), new Color(88, 130, 178) * 0.7f * eased);
@@ -453,11 +398,6 @@ public static class MenuOptions
 
 			Draw.Circle(leftCenter, leftRadiusPx * 1.05f, new Color(43, 63, 92) * 0.72f * eased, 42);
 			Draw.Circle(leftCenter, leftRadiusPx * 0.5f, new Color(178, 208, 235) * 0.75f * eased, 32);
-			float dpadGap = dpadRadiusPx * 1.05f;
-			Draw.Circle(dpadCenter + new Vector2(-dpadGap, 0f), dpadRadiusPx, new Color(72, 98, 132) * 0.9f * eased, 28);
-			Draw.Circle(dpadCenter + new Vector2(dpadGap, 0f), dpadRadiusPx, new Color(72, 98, 132) * 0.9f * eased, 28);
-			Draw.Circle(dpadCenter + new Vector2(0f, -dpadGap), dpadRadiusPx, new Color(72, 98, 132) * 0.9f * eased, 28);
-			Draw.Circle(dpadCenter + new Vector2(0f, dpadGap), dpadRadiusPx, new Color(72, 98, 132) * 0.9f * eased, 28);
 			float shoulderYPos = shoulderCenter.Y;
 			Draw.Circle(new Vector2(width * 0.23f, shoulderYPos), buttonRadiusPx * 0.85f, new Color(132, 144, 166) * 0.9f * eased, 28);
 			Draw.Circle(new Vector2(width * 0.77f, shoulderYPos), buttonRadiusPx * 0.85f, new Color(132, 144, 166) * 0.9f * eased, 28);
@@ -469,27 +409,23 @@ public static class MenuOptions
 			Draw.Circle(aCenter, buttonRadiusPx, new Color(58, 182, 102) * 0.9f * eased, 30);
 			Draw.Circle(bCenter, buttonRadiusPx, new Color(217, 86, 89) * 0.9f * eased, 30);
 			Draw.Circle(xCenter, buttonRadiusPx, new Color(79, 153, 243) * 0.9f * eased, 30);
-			Draw.Circle(yCenter, buttonRadiusPx, new Color(223, 192, 63) * 0.9f * eased, 30);
 
 			Color handleColor = dragTarget switch
 			{
 				DragTarget.LeftStick => new Color(123, 202, 255),
-				DragTarget.DpadCluster => new Color(133, 225, 168),
 				DragTarget.ShoulderCluster => new Color(255, 231, 127),
 				DragTarget.StartSelectCluster => new Color(255, 164, 212),
 				DragTarget.ActionCluster => new Color(255, 184, 115),
 				_ => new Color(240, 240, 240)
 			};
 			Draw.Circle(leftCenter, leftRadiusPx * 1.2f, handleColor * 0.85f * eased, 3f, 40);
-			Draw.Circle(dpadCenter, dpadRadiusPx * 2.25f, handleColor * 0.85f * eased, 3f, 40);
 			Draw.Circle(shoulderCenter, buttonRadiusPx * 1.75f, handleColor * 0.85f * eased, 3f, 40);
 			Draw.Circle(startSelectCenter, buttonRadiusPx * 1.52f, handleColor * 0.85f * eased, 3f, 40);
 			Draw.Circle(actionCenter, buttonRadiusPx * 2.45f, handleColor * 0.85f * eased, 3f, 40);
 			DrawHandleTag(leftCenter, "LS", dragTarget == DragTarget.LeftStick, eased, new Vector2(0f, -leftRadiusPx * 1.45f));
-			DrawHandleTag(dpadCenter, "D-PAD", dragTarget == DragTarget.DpadCluster, eased, new Vector2(0f, -dpadRadiusPx * 2.5f));
 			DrawHandleTag(shoulderCenter, "SH", dragTarget == DragTarget.ShoulderCluster, eased, new Vector2(0f, -buttonRadiusPx * 1.9f));
 			DrawHandleTag(startSelectCenter, "ST", dragTarget == DragTarget.StartSelectCluster, eased, new Vector2(0f, -buttonRadiusPx * 1.85f));
-			DrawHandleTag(actionCenter, "ABXY", dragTarget == DragTarget.ActionCluster, eased, new Vector2(0f, -buttonRadiusPx * 2.65f));
+			DrawHandleTag(actionCenter, "ABX", dragTarget == DragTarget.ActionCluster, eased, new Vector2(0f, -buttonRadiusPx * 2.65f));
 
 			ActiveFont.DrawOutline(RuntimeText("runtime_touch_editor_title"), new Vector2(width * 0.5f, 74f), new Vector2(0.5f, 0.5f), Vector2.One * 0.9f, Color.White * eased, 2f, Color.Black * eased);
 			ActiveFont.DrawOutline(RuntimeText("runtime_touch_editor_hint_drag"), new Vector2(width * 0.5f, 118f), new Vector2(0.5f, 0.5f), Vector2.One * 0.55f, new Color(212, 224, 238) * eased, 2f, Color.Black * eased);
@@ -525,9 +461,8 @@ public static class MenuOptions
 		private string BuildStatusLine()
 		{
 			return "LS " + ToPercent(leftX) + "," + ToPercent(leftY)
-				+ "  DPAD " + ToPercent(dpadX) + "," + ToPercent(dpadY)
 				+ "  TOP " + ToPercent(shoulderY) + "/" + ToPercent(startSelectY)
-				+ "  ABXY " + ToPercent(actionX) + "," + ToPercent(actionY)
+				+ "  ABX " + ToPercent(actionX) + "," + ToPercent(actionY)
 				+ "  SCALE " + ToPercent(scale)
 				+ "  SNAP " + (snapToAnchors ? RuntimeText("runtime_value_on") : RuntimeText("runtime_value_off"))
 				+ "  PRECISE " + (precisionMode ? RuntimeText("runtime_value_on") : RuntimeText("runtime_value_off"));
@@ -621,19 +556,14 @@ public static class MenuOptions
 					return;
 				}
 
-				ResolvePreviewLayout(Engine.Width, Engine.Height, out var leftCenter, out var dpadCenter, out var shoulderCenter, out var startSelectCenter, out var actionCenter, out _, out _, out _, out _, out float leftRadiusPx, out float dpadRadiusPx, out float buttonRadiusPx);
+				ResolvePreviewLayout(Engine.Width, Engine.Height, out var leftCenter, out var shoulderCenter, out var startSelectCenter, out var actionCenter, out _, out _, out _, out _, out float leftRadiusPx, out float buttonRadiusPx);
 				float leftGrabRadius = leftRadiusPx * 1.35f;
-				float dpadGrabRadius = dpadRadiusPx * 2.35f;
 				float shoulderGrabRadius = buttonRadiusPx * 1.8f;
 				float startSelectGrabRadius = buttonRadiusPx * 1.6f;
 				float actionGrabRadius = buttonRadiusPx * 2.6f;
 				if ((pointer - leftCenter).LengthSquared() <= leftGrabRadius * leftGrabRadius)
 				{
 					dragTarget = DragTarget.LeftStick;
-				}
-				else if ((pointer - dpadCenter).LengthSquared() <= dpadGrabRadius * dpadGrabRadius)
-				{
-					dragTarget = DragTarget.DpadCluster;
 				}
 				else if ((pointer - shoulderCenter).LengthSquared() <= shoulderGrabRadius * shoulderGrabRadius)
 				{
@@ -681,11 +611,6 @@ public static class MenuOptions
 				changed |= SetClamped(ref leftX, dragStartLeftX + dx, 0.06f, 0.45f);
 				changed |= SetClamped(ref leftY, dragStartLeftY + dy, 0.4f, 0.95f);
 			}
-			else if (dragTarget == DragTarget.DpadCluster)
-			{
-				changed |= SetClamped(ref dpadX, dragStartDpadX + dx, 0.06f, 0.45f);
-				changed |= SetClamped(ref dpadY, dragStartDpadY + dy, 0.34f, 0.95f);
-			}
 			else if (dragTarget == DragTarget.ShoulderCluster)
 			{
 				changed |= SetClamped(ref shoulderY, dragStartShoulderY + dy, 0.06f, 0.3f);
@@ -714,8 +639,6 @@ public static class MenuOptions
 			dragStartLeftY = leftY;
 			dragStartActionX = actionX;
 			dragStartActionY = actionY;
-			dragStartDpadX = dpadX;
-			dragStartDpadY = dpadY;
 			dragStartShoulderY = shoulderY;
 			dragStartStartSelectY = startSelectY;
 		}
@@ -733,10 +656,6 @@ public static class MenuOptions
 			case DragTarget.LeftStick:
 				leftX = SnapIfNear(leftX, 0.18f, snapThreshold);
 				leftY = SnapIfNear(leftY, 0.76f, snapThreshold);
-				break;
-			case DragTarget.DpadCluster:
-				dpadX = SnapIfNear(dpadX, 0.18f, snapThreshold);
-				dpadY = SnapIfNear(dpadY, 0.56f, snapThreshold);
 				break;
 			case DragTarget.ShoulderCluster:
 				shoulderY = SnapIfNear(shoulderY, 0.13f, snapThreshold);
@@ -794,8 +713,6 @@ public static class MenuOptions
 				update.TouchLeftStickY = leftY;
 				update.TouchActionX = actionX;
 				update.TouchActionY = actionY;
-				update.TouchDpadX = dpadX;
-				update.TouchDpadY = dpadY;
 				update.TouchShoulderY = shoulderY;
 				update.TouchStartSelectY = startSelectY;
 				update.TouchLeftStickRadius = leftStickRadius;
@@ -814,8 +731,6 @@ public static class MenuOptions
 			leftY = 0.76f;
 			actionX = 0.82f;
 			actionY = 0.74f;
-			dpadX = 0.18f;
-			dpadY = 0.56f;
 			shoulderY = 0.13f;
 			startSelectY = 0.12f;
 			scale = 1f;
@@ -826,16 +741,14 @@ public static class MenuOptions
 			FlushLayoutUpdate(force: true);
 		}
 
-		private void ResolvePreviewLayout(float width, float height, out Vector2 leftCenter, out Vector2 dpadCenter, out Vector2 shoulderCenter, out Vector2 startSelectCenter, out Vector2 actionCenter, out Vector2 aCenter, out Vector2 bCenter, out Vector2 xCenter, out Vector2 yCenter, out float leftRadiusPx, out float dpadRadiusPx, out float buttonRadiusPx)
+		private void ResolvePreviewLayout(float width, float height, out Vector2 leftCenter, out Vector2 shoulderCenter, out Vector2 startSelectCenter, out Vector2 actionCenter, out Vector2 aCenter, out Vector2 bCenter, out Vector2 xCenter, out Vector2 yCenter, out float leftRadiusPx, out float buttonRadiusPx)
 		{
 			float minDimension = MathF.Min(width, height);
 			leftRadiusPx = minDimension * Math.Clamp(leftStickRadius, 0.08f, 0.2f) * Math.Clamp(scale, 0.65f, 1.8f);
 			buttonRadiusPx = minDimension * Math.Clamp(buttonRadius, 0.05f, 0.14f) * Math.Clamp(scale, 0.65f, 1.8f);
-			dpadRadiusPx = buttonRadiusPx * 0.78f;
 			float spacing = buttonRadiusPx * Math.Clamp(actionSpacing, 1.05f, 2f);
 
 			leftCenter = new Vector2(width * Math.Clamp(leftX, 0.06f, 0.45f), height * Math.Clamp(leftY, 0.4f, 0.95f));
-			dpadCenter = new Vector2(width * Math.Clamp(dpadX, 0.06f, 0.45f), height * Math.Clamp(dpadY, 0.34f, 0.95f));
 			shoulderCenter = new Vector2(width * 0.5f, height * Math.Clamp(shoulderY, 0.06f, 0.3f));
 			startSelectCenter = new Vector2(width * 0.5f, height * Math.Clamp(startSelectY, 0.06f, 0.3f));
 			actionCenter = new Vector2(width * Math.Clamp(actionX, 0.52f, 0.95f), height * Math.Clamp(actionY, 0.4f, 0.95f));
@@ -1342,7 +1255,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Estilo dos Icons", 
 				"runtime_touch_editor_open" => "Editor Visual Touch", 
 				"runtime_touch_editor_title" => "EDITOR VISUAL TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Arraste analogico esquerdo, D-Pad, botoes superiores e grupo ABXY.", 
+				"runtime_touch_editor_hint_drag" => "Arraste analogico esquerdo, botoes superiores e grupo ABX.", 
 				"runtime_touch_editor_hint_pinch" => "Use pinch com dois dedos para ajustar escala.", 
 				"runtime_touch_editor_reset" => "Redefinir", 
 				"runtime_touch_editor_done" => "Concluir", 
@@ -1427,7 +1340,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Estilo de Iconos", 
 				"runtime_touch_editor_open" => "Editor Visual Touch", 
 				"runtime_touch_editor_title" => "EDITOR VISUAL TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Arrastra stick izquierdo, D-Pad, botones superiores y grupo ABXY.", 
+				"runtime_touch_editor_hint_drag" => "Arrastra stick izquierdo, botones superiores y grupo ABX.", 
 				"runtime_touch_editor_hint_pinch" => "Usa pinch con dos dedos para la escala.", 
 				"runtime_touch_editor_reset" => "Restablecer", 
 				"runtime_touch_editor_done" => "Listo", 
@@ -1512,7 +1425,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Style des Icones", 
 				"runtime_touch_editor_open" => "Editeur Visuel Touch", 
 				"runtime_touch_editor_title" => "EDITEUR VISUEL TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Glissez stick gauche, D-Pad, boutons du haut et groupe ABXY.", 
+				"runtime_touch_editor_hint_drag" => "Glissez stick gauche, boutons du haut et groupe ABX.", 
 				"runtime_touch_editor_hint_pinch" => "Utilisez un pinch a deux doigts pour l echelle.", 
 				"runtime_touch_editor_reset" => "Reinitialiser", 
 				"runtime_touch_editor_done" => "Terminer", 
@@ -1597,7 +1510,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Icon-Stil", 
 				"runtime_touch_editor_open" => "Touch-Layout Editor", 
 				"runtime_touch_editor_title" => "TOUCH LAYOUT EDITOR", 
-				"runtime_touch_editor_hint_drag" => "Ziehe linken Stick, D-Pad, obere Tasten und ABXY-Gruppe.", 
+				"runtime_touch_editor_hint_drag" => "Ziehe linken Stick, obere Tasten und ABX-Gruppe.", 
 				"runtime_touch_editor_hint_pinch" => "Nutze Zwei-Finger-Pinch fur die Skalierung.", 
 				"runtime_touch_editor_reset" => "Zurucksetzen", 
 				"runtime_touch_editor_done" => "Fertig", 
@@ -1682,7 +1595,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Stile Icone", 
 				"runtime_touch_editor_open" => "Editor Visuale Touch", 
 				"runtime_touch_editor_title" => "EDITOR VISUALE TOUCH", 
-				"runtime_touch_editor_hint_drag" => "Trascina stick sinistro, D-Pad, tasti superiori e gruppo ABXY.", 
+				"runtime_touch_editor_hint_drag" => "Trascina stick sinistro, tasti superiori e gruppo ABX.", 
 				"runtime_touch_editor_hint_pinch" => "Usa pinch a due dita per la scala.", 
 				"runtime_touch_editor_reset" => "Reimposta", 
 				"runtime_touch_editor_done" => "Fine", 
@@ -1767,7 +1680,7 @@ public static class MenuOptions
 				"runtime_touch_style" => "Icon Style", 
 				"runtime_touch_editor_open" => "Open Touch Layout Editor", 
 				"runtime_touch_editor_title" => "TOUCH LAYOUT EDITOR", 
-				"runtime_touch_editor_hint_drag" => "Drag left stick, D-Pad, top buttons, and ABXY cluster.", 
+				"runtime_touch_editor_hint_drag" => "Drag left stick, top buttons, and ABX cluster.", 
 				"runtime_touch_editor_hint_pinch" => "Use two-finger pinch to change scale.", 
 				"runtime_touch_editor_reset" => "Reset", 
 				"runtime_touch_editor_done" => "Done", 
