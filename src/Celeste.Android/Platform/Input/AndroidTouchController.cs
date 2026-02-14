@@ -204,15 +204,23 @@ public sealed class AndroidTouchController : IDisposable
 
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone);
 
-        DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 1.06f, ApplyAlpha(new Color(210, 223, 240), alpha * 0.22f));
-        DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.97f, plate);
-        DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.8f, ApplyAlpha(new Color(36, 52, 74), alpha * 0.82f));
-        DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.62f, ApplyAlpha(new Color(14, 20, 30), alpha * 0.8f));
+        bool hasCustomStickBase = DrawPromptTexture(spriteBatch, "STICK_BASE", _leftStickCenter, _leftStickRadius * 1.04f, ApplyAlpha(Color.White, alpha * 0.95f));
+        if (!hasCustomStickBase)
+        {
+            DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 1.06f, ApplyAlpha(new Color(210, 223, 240), alpha * 0.22f));
+            DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.97f, plate);
+            DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.8f, ApplyAlpha(new Color(36, 52, 74), alpha * 0.82f));
+            DrawCircle(spriteBatch, _leftStickCenter, _leftStickRadius * 0.62f, ApplyAlpha(new Color(14, 20, 30), alpha * 0.8f));
+        }
 
         Vector2 knobCenter = _leftStickKnob == Vector2.Zero ? _leftStickCenter : _leftStickKnob;
-        DrawCircle(spriteBatch, knobCenter, _leftStickRadius * 0.44f, ApplyAlpha(new Color(196, 212, 230), alpha * 0.45f));
-        DrawCircle(spriteBatch, knobCenter, _leftStickRadius * 0.4f, ApplyAlpha(new Color(28, 40, 58), alpha * 0.95f));
-        DrawCircle(spriteBatch, knobCenter, _leftStickRadius * 0.26f, accent);
+        bool hasCustomStickThumb = DrawPromptTexture(spriteBatch, "STICK_THUMB", knobCenter, _leftStickRadius * 0.48f, ApplyAlpha(Color.White, alpha));
+        if (!hasCustomStickThumb)
+        {
+            DrawCircle(spriteBatch, knobCenter, _leftStickRadius * 0.44f, ApplyAlpha(new Color(196, 212, 230), alpha * 0.45f));
+            DrawCircle(spriteBatch, knobCenter, _leftStickRadius * 0.4f, ApplyAlpha(new Color(28, 40, 58), alpha * 0.95f));
+            DrawCircle(spriteBatch, knobCenter, _leftStickRadius * 0.26f, accent);
+        }
 
         DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterA, _buttonRadius, "A", _buttonA, new Color(58, 182, 102), alpha, "FACE_A");
         DrawFaceButton(spriteBatch, font, fallbackFont, pixel, _buttonCenterB, _buttonRadius, "B", _buttonB, new Color(217, 86, 89), alpha, "FACE_B");
@@ -882,10 +890,12 @@ public sealed class AndroidTouchController : IDisposable
 
             try
             {
-                using FileStream stream = File.OpenRead(path);
-                Texture2D texture = Texture2D.FromStream(graphicsDevice, stream);
-                _promptTextures[key] = texture;
-                return;
+                byte[] raw = File.ReadAllBytes(path);
+                if (TryCreateTextureFromBytes(graphicsDevice, raw, out Texture2D texture))
+                {
+                    _promptTextures[key] = texture;
+                    return;
+                }
             }
             catch
             {
@@ -929,7 +939,24 @@ public sealed class AndroidTouchController : IDisposable
             }
 
             using Stream stream = assets.Open(assetPath);
-            texture = Texture2D.FromStream(graphicsDevice, stream);
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            return TryCreateTextureFromBytes(graphicsDevice, memory.ToArray(), out texture);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryCreateTextureFromBytes(GraphicsDevice graphicsDevice, byte[] rawBytes, out Texture2D texture)
+    {
+        texture = null!;
+        try
+        {
+            byte[] decoded = global::Celeste.CustomIconData.DecodeIfNeeded(rawBytes);
+            using var imageStream = new MemoryStream(decoded, writable: false);
+            texture = Texture2D.FromStream(graphicsDevice, imageStream);
             return true;
         }
         catch
@@ -942,11 +969,29 @@ public sealed class AndroidTouchController : IDisposable
     {
         string[] Custom(params string[] names)
         {
-            string[] result = new string[names.Length * 2];
+            string[] result = new string[names.Length * 4];
             for (int i = 0; i < names.Length; i++)
             {
-                result[i * 2] = "CONTROLES CELESTE/" + names[i];
-                result[i * 2 + 1] = "controls_custom/" + names[i];
+                string stem = Path.GetFileNameWithoutExtension(names[i]);
+                result[i * 4] = "CONTROLES CELESTE/" + stem + ".dat";
+                result[i * 4 + 1] = "controls_custom/" + stem + ".dat";
+                result[i * 4 + 2] = "CONTROLES CELESTE/" + names[i];
+                result[i * 4 + 3] = "controls_custom/" + names[i];
+            }
+
+            return result;
+        }
+
+        string[] CustomAnalog(params string[] names)
+        {
+            string[] result = new string[names.Length * 4];
+            for (int i = 0; i < names.Length; i++)
+            {
+                string stem = Path.GetFileNameWithoutExtension(names[i]);
+                result[i * 4] = "ARQUIVOSPARAOANALOGICO/" + stem + ".dat";
+                result[i * 4 + 1] = "analog_custom/" + stem + ".dat";
+                result[i * 4 + 2] = "ARQUIVOSPARAOANALOGICO/" + names[i];
+                result[i * 4 + 3] = "analog_custom/" + names[i];
             }
 
             return result;
@@ -960,7 +1005,9 @@ public sealed class AndroidTouchController : IDisposable
             ["LT"] = Custom("agarrar.png"),
             ["RT"] = Custom("agarrar2.png"),
             ["START"] = Custom("pause-start.png"),
-            ["BACK"] = Custom("select.png")
+            ["BACK"] = Custom("select.png"),
+            ["STICK_BASE"] = CustomAnalog("analogico.png"),
+            ["STICK_THUMB"] = CustomAnalog("analogic1.png")
         };
     }
 

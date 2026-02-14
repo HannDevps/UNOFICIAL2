@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Monocle;
 
@@ -83,13 +84,13 @@ public static class Input
 
 	private static readonly Dictionary<string, string[]> xboxAltPromptLookup = new Dictionary<string, string[]>(StringComparer.Ordinal)
 	{
-		{ "A", new string[2] { "CONTROLES CELESTE/pular.png", "controls_custom/pular.png" } },
-		{ "B", new string[2] { "CONTROLES CELESTE/dash-back.png", "controls_custom/dash-back.png" } },
-		{ "X", new string[2] { "CONTROLES CELESTE/dash.png", "controls_custom/dash.png" } },
-		{ "LeftTrigger", new string[2] { "CONTROLES CELESTE/agarrar.png", "controls_custom/agarrar.png" } },
-		{ "RightTrigger", new string[2] { "CONTROLES CELESTE/agarrar2.png", "controls_custom/agarrar2.png" } },
-		{ "Start", new string[2] { "CONTROLES CELESTE/pause-start.png", "controls_custom/pause-start.png" } },
-		{ "Back", new string[2] { "CONTROLES CELESTE/select.png", "controls_custom/select.png" } }
+		{ "A", new string[4] { "CONTROLES CELESTE/pular.dat", "controls_custom/pular.dat", "CONTROLES CELESTE/pular.png", "controls_custom/pular.png" } },
+		{ "B", new string[4] { "CONTROLES CELESTE/dash-back.dat", "controls_custom/dash-back.dat", "CONTROLES CELESTE/dash-back.png", "controls_custom/dash-back.png" } },
+		{ "X", new string[4] { "CONTROLES CELESTE/dash.dat", "controls_custom/dash.dat", "CONTROLES CELESTE/dash.png", "controls_custom/dash.png" } },
+		{ "LeftTrigger", new string[4] { "CONTROLES CELESTE/agarrar.dat", "controls_custom/agarrar.dat", "CONTROLES CELESTE/agarrar.png", "controls_custom/agarrar.png" } },
+		{ "RightTrigger", new string[4] { "CONTROLES CELESTE/agarrar2.dat", "controls_custom/agarrar2.dat", "CONTROLES CELESTE/agarrar2.png", "controls_custom/agarrar2.png" } },
+		{ "Start", new string[4] { "CONTROLES CELESTE/pause-start.dat", "controls_custom/pause-start.dat", "CONTROLES CELESTE/pause-start.png", "controls_custom/pause-start.png" } },
+		{ "Back", new string[4] { "CONTROLES CELESTE/select.dat", "controls_custom/select.dat", "CONTROLES CELESTE/select.png", "controls_custom/select.png" } }
 	};
 
 	private static float[] rumbleStrengths = new float[4] { 0.15f, 0.4f, 1f, 0.05f };
@@ -635,9 +636,11 @@ public static class Input
 
 				try
 				{
-					texture = new MTexture(VirtualContent.CreateTexture(fullPath));
-					externalPromptLookup[cacheKey] = texture;
-					return true;
+					if (TryLoadExternalPromptTexture(fullPath, out texture))
+					{
+						externalPromptLookup[cacheKey] = texture;
+						return true;
+					}
 				}
 				catch
 				{
@@ -647,6 +650,37 @@ public static class Input
 
 		externalPromptMisses.Add(cacheKey);
 		return false;
+	}
+
+	private static bool TryLoadExternalPromptTexture(string fullPath, out MTexture texture)
+	{
+		texture = null;
+		if (string.IsNullOrWhiteSpace(fullPath))
+		{
+			return false;
+		}
+
+		if (!Path.GetExtension(fullPath).Equals(".dat", StringComparison.OrdinalIgnoreCase))
+		{
+			texture = new MTexture(VirtualContent.CreateTexture(fullPath));
+			return true;
+		}
+
+		GraphicsDevice graphicsDevice = Engine.Graphics?.GraphicsDevice;
+		if (graphicsDevice == null)
+		{
+			return false;
+		}
+
+		byte[] encoded = File.ReadAllBytes(fullPath);
+		byte[] decoded = CustomIconData.DecodeIfNeeded(encoded);
+		using var stream = new MemoryStream(decoded, writable: false);
+		Texture2D texture2D = Texture2D.FromStream(graphicsDevice, stream);
+		VirtualTexture virtualTexture = VirtualContent.CreateTexture("external_prompt_" + Path.GetFileName(fullPath), texture2D.Width, texture2D.Height, Color.Transparent);
+		virtualTexture.Texture?.Dispose();
+		virtualTexture.Texture = texture2D;
+		texture = new MTexture(virtualTexture);
+		return true;
 	}
 
 	private static bool TryGetPromptCandidates(string _prefix, string _style, string input, out string[] candidates)

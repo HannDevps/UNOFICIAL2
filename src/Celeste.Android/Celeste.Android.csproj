@@ -20,6 +20,12 @@
   <ItemGroup>
     <AndroidAsset Include="..\..\CONTROLES CELESTE\*.png"
                   Link="controls_custom/%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\CONTROLES CELESTE\*.dat"
+                  Link="controls_custom/%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\ARQUIVOSPARAOANALOGICO\*.png"
+                  Link="analog_custom/%(Filename)%(Extension)" />
+    <AndroidAsset Include="..\..\ARQUIVOSPARAOANALOGICO\*.dat"
+                  Link="analog_custom/%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
