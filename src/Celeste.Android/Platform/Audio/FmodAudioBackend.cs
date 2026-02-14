@@ -40,6 +40,7 @@ public sealed class FmodAudioBackend : IAudioBackend
             if (_javaBridgeReady)
             {
                 _logger.Log(LogLevel.Info, "FMOD", "FMOD Java bridge initialized (org.fmod.FMOD.init)");
+                CaptureJavaAudioHints();
             }
             else
             {
@@ -58,22 +59,35 @@ public sealed class FmodAudioBackend : IAudioBackend
 
     public void OnPause()
     {
-        if (!_javaBridgeReady)
-        {
-            return;
-        }
-
-        TryInvokeOptionalNoArg("onPause", "FMOD Java bridge onPause");
+        // FMOD 1.10.14 Java bridge does not expose a pause callback.
     }
 
     public void OnResume()
     {
         if (!_javaBridgeReady)
         {
+            _javaBridgeReady = TryInitJavaBridge();
+            if (_javaBridgeReady)
+            {
+                _logger.Log(LogLevel.Info, "FMOD", "FMOD Java bridge re-initialized on resume");
+                CaptureJavaAudioHints();
+            }
+
             return;
         }
 
-        TryInvokeOptionalNoArg("onResume", "FMOD Java bridge onResume");
+        if (TryCheckJavaInit(out var ready) && !ready)
+        {
+            _logger.Log(LogLevel.Warn, "FMOD", "FMOD Java bridge reported not initialized on resume; trying to recover");
+            _javaBridgeReady = TryInitJavaBridge();
+            if (!_javaBridgeReady)
+            {
+                _logger.Log(LogLevel.Warn, "FMOD", "FMOD Java bridge recovery failed on resume");
+                return;
+            }
+        }
+
+        CaptureJavaAudioHints();
     }
 
     public void Shutdown()
@@ -83,7 +97,7 @@ public sealed class FmodAudioBackend : IAudioBackend
             return;
         }
 
-        TryInvokeOptionalNoArg("close", "FMOD Java bridge close");
+        TryInvokeRequiredNoArg("close", "FMOD Java bridge close");
         _javaBridgeReady = false;
         IsInitialized = false;
     }
@@ -136,7 +150,78 @@ public sealed class FmodAudioBackend : IAudioBackend
         }
     }
 
-    private void TryInvokeOptionalNoArg(string methodName, string operation)
+    private bool TryCheckJavaInit(out bool ready)
+    {
+        ready = false;
+        IntPtr classRef = IntPtr.Zero;
+        try
+        {
+            classRef = JNIEnv.FindClass(FmodClassPath);
+            if (classRef == IntPtr.Zero)
+            {
+                TryClearPendingJavaException(out _);
+                return false;
+            }
+
+            return TryCallStaticBoolean(classRef, "checkInit", "()Z", out ready);
+        }
+        catch (Exception exception)
+        {
+            _logger.Log(LogLevel.Warn, "FMOD", "Failed to query FMOD Java checkInit", exception);
+            return false;
+        }
+        finally
+        {
+            if (classRef != IntPtr.Zero)
+            {
+                JNIEnv.DeleteLocalRef(classRef);
+            }
+        }
+    }
+
+    private void CaptureJavaAudioHints()
+    {
+        IntPtr classRef = IntPtr.Zero;
+        try
+        {
+            classRef = JNIEnv.FindClass(FmodClassPath);
+            if (classRef == IntPtr.Zero)
+            {
+                TryClearPendingJavaException(out _);
+                return;
+            }
+
+            bool javaReady = TryCallStaticBoolean(classRef, "checkInit", "()Z", out var checkInitResult) && checkInitResult;
+            bool supportsLowLatency = TryCallStaticBoolean(classRef, "supportsLowLatency", "()Z", out var lowLatencyResult) && lowLatencyResult;
+            int sampleRate = TryCallStaticInt(classRef, "getOutputSampleRate", "()I", out var sampleRateResult)
+                ? sampleRateResult
+                : 0;
+            int blockSize = TryCallStaticInt(classRef, "getOutputBlockSize", "()I", out var blockSizeResult)
+                ? blockSizeResult
+                : 0;
+            bool bluetoothOn = TryCallStaticBoolean(classRef, "isBluetoothOn", "()Z", out var bluetoothResult) && bluetoothResult;
+
+            AudioRuntimePolicy.ConfigureAndroidDeviceAudioHints(sampleRate, blockSize, supportsLowLatency, bluetoothOn, javaReady);
+            _logger.Log(
+                LogLevel.Info,
+                "FMOD",
+                "FMOD Java audio hints captured",
+                context: $"javaReady={javaReady}; sampleRate={sampleRate}; blockSize={blockSize}; lowLatency={supportsLowLatency}; bluetooth={bluetoothOn}");
+        }
+        catch (Exception exception)
+        {
+            _logger.Log(LogLevel.Warn, "FMOD", "Failed to capture FMOD Java audio hints", exception);
+        }
+        finally
+        {
+            if (classRef != IntPtr.Zero)
+            {
+                JNIEnv.DeleteLocalRef(classRef);
+            }
+        }
+    }
+
+    private void TryInvokeRequiredNoArg(string methodName, string operation)
     {
         IntPtr classRef = IntPtr.Zero;
         try
@@ -214,6 +299,11 @@ public sealed class FmodAudioBackend : IAudioBackend
         return true;
     }
 
+    private bool TryCallStaticBoolean(IntPtr classRef, string methodName, string signature, out bool value)
+    {
+        return TryCallStaticBoolean(classRef, methodName, signature, Array.Empty<JValue>(), out value);
+    }
+
     private bool TryCallStaticInt(IntPtr classRef, string methodName, string signature, JValue[] args, out int value)
     {
         value = -1;
@@ -233,6 +323,11 @@ public sealed class FmodAudioBackend : IAudioBackend
         }
 
         return true;
+    }
+
+    private bool TryCallStaticInt(IntPtr classRef, string methodName, string signature, out int value)
+    {
+        return TryCallStaticInt(classRef, methodName, signature, Array.Empty<JValue>(), out value);
     }
 
     private static bool TryClearPendingJavaException(out string detail)

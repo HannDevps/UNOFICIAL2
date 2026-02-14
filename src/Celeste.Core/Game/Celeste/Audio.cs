@@ -255,66 +255,74 @@ public static class Audio
 	private static void InitializeSystemWithOutputFallback(FMOD.Studio.INITFLAGS studioFlags)
 	{
 		OUTPUTTYPE[] outputCandidates = GetOutputCandidates();
+		int[] maxChannelCandidates = GetMaxChannelCandidates();
 		RESULT lastResult = RESULT.OK;
 		system = null;
 		for (int i = 0; i < outputCandidates.Length; i++)
 		{
 			OUTPUTTYPE outputType = outputCandidates[i];
-			RESULT createResult = FMOD.Studio.System.create(out var candidateSystem);
-			if (createResult != RESULT.OK)
-			{
-				lastResult = createResult;
-				CelestePathBridge.LogWarn("FMOD", $"Failed to create FMOD studio system for output '{outputType}': {createResult}");
-				continue;
-			}
 
-			try
+			for (int j = 0; j < maxChannelCandidates.Length; j++)
 			{
-				RESULT getLowLevelResult = candidateSystem.getLowLevelSystem(out var lowLevelSystem);
-				if (getLowLevelResult != RESULT.OK)
+				int maxChannels = maxChannelCandidates[j];
+				RESULT createResult = FMOD.Studio.System.create(out var candidateSystem);
+				if (createResult != RESULT.OK)
 				{
-					lastResult = getLowLevelResult;
-					CelestePathBridge.LogWarn("FMOD", $"Failed to get FMOD low-level system for output '{outputType}': {getLowLevelResult}");
+					lastResult = createResult;
+					CelestePathBridge.LogWarn("FMOD", $"Failed to create FMOD studio system for output '{outputType}' and channels={maxChannels}: {createResult}");
 					continue;
 				}
 
-				if (OperatingSystem.IsAndroid() && outputType != OUTPUTTYPE.AUTODETECT)
+				try
 				{
-					RESULT setOutputResult = lowLevelSystem.setOutput(outputType);
-					if (setOutputResult != RESULT.OK)
+					RESULT getLowLevelResult = candidateSystem.getLowLevelSystem(out var lowLevelSystem);
+					if (getLowLevelResult != RESULT.OK)
 					{
-						lastResult = setOutputResult;
-						CelestePathBridge.LogWarn("FMOD", $"Failed to set FMOD output mode '{outputType}' on Android: {setOutputResult}");
+						lastResult = getLowLevelResult;
+						CelestePathBridge.LogWarn("FMOD", $"Failed to get FMOD low-level system for output '{outputType}' and channels={maxChannels}: {getLowLevelResult}");
 						continue;
 					}
-				}
 
-				RESULT initializeResult = candidateSystem.initialize(1024, studioFlags, FMOD.INITFLAGS.NORMAL, IntPtr.Zero);
-				if (initializeResult == RESULT.OK)
-				{
-					system = candidateSystem;
-					candidateSystem = null;
-					if (lowLevelSystem.getOutput(out var output) == RESULT.OK)
+					if (OperatingSystem.IsAndroid() && outputType != OUTPUTTYPE.AUTODETECT)
 					{
-						CelestePathBridge.LogInfo("FMOD", $"FMOD core output active: {output}");
+						RESULT setOutputResult = lowLevelSystem.setOutput(outputType);
+						if (setOutputResult != RESULT.OK)
+						{
+							lastResult = setOutputResult;
+							CelestePathBridge.LogWarn("FMOD", $"Failed to set FMOD output mode '{outputType}' on Android with channels={maxChannels}: {setOutputResult}");
+							continue;
+						}
 					}
 
-					return;
-				}
+					ApplyAndroidDeviceAudioHints(lowLevelSystem);
 
-				lastResult = initializeResult;
-				CelestePathBridge.LogWarn("FMOD", $"FMOD init attempt failed on output '{outputType}': {initializeResult}");
-			}
-			finally
-			{
-				if (candidateSystem != null)
+					RESULT initializeResult = candidateSystem.initialize(maxChannels, studioFlags, FMOD.INITFLAGS.NORMAL, IntPtr.Zero);
+					if (initializeResult == RESULT.OK)
+					{
+						system = candidateSystem;
+						candidateSystem = null;
+						if (lowLevelSystem.getOutput(out var output) == RESULT.OK)
+						{
+							CelestePathBridge.LogInfo("FMOD", $"FMOD core output active: {output}; channels={maxChannels}");
+						}
+
+						return;
+					}
+
+					lastResult = initializeResult;
+					CelestePathBridge.LogWarn("FMOD", $"FMOD init attempt failed on output '{outputType}' with channels={maxChannels}: {initializeResult}");
+				}
+				finally
 				{
-					candidateSystem.release();
+					if (candidateSystem != null)
+					{
+						candidateSystem.release();
+					}
 				}
 			}
 		}
 
-		throw new Exception($"FMOD initialize failed after trying {outputCandidates.Length} output mode(s). Last error: {lastResult}");
+		throw new Exception($"FMOD initialize failed after trying {outputCandidates.Length} output mode(s) and {maxChannelCandidates.Length} channel profile(s). Last error: {lastResult}");
 	}
 
 	private static OUTPUTTYPE[] GetOutputCandidates()
@@ -330,6 +338,50 @@ public static class Audio
 			OUTPUTTYPE.AUDIOTRACK,
 			OUTPUTTYPE.OPENSL
 		};
+	}
+
+	private static int[] GetMaxChannelCandidates()
+	{
+		if (!OperatingSystem.IsAndroid())
+		{
+			return new int[1] { 1024 };
+		}
+
+		return new int[3] { 1024, 512, 256 };
+	}
+
+	private static void ApplyAndroidDeviceAudioHints(FMOD.System lowLevelSystem)
+	{
+		if (!OperatingSystem.IsAndroid())
+		{
+			return;
+		}
+
+		if (!AudioRuntimePolicy.TryGetAndroidDeviceAudioHints(out int outputSampleRate, out int outputBlockSize, out bool supportsLowLatency, out bool bluetoothOn, out bool javaBridgeReady))
+		{
+			return;
+		}
+
+		if (outputSampleRate > 0)
+		{
+			RESULT result = lowLevelSystem.setSoftwareFormat(outputSampleRate, SPEAKERMODE.DEFAULT, 0);
+			if (result != RESULT.OK)
+			{
+				CelestePathBridge.LogWarn("FMOD", $"Failed to apply Android sample-rate hint ({outputSampleRate}): {result}");
+			}
+		}
+
+		if (outputBlockSize > 0)
+		{
+			uint bufferLength = (uint)Math.Clamp(outputBlockSize, 64, 4096);
+			RESULT result2 = lowLevelSystem.setDSPBufferSize(bufferLength, 4);
+			if (result2 != RESULT.OK)
+			{
+				CelestePathBridge.LogWarn("FMOD", $"Failed to apply Android DSP buffer hint ({bufferLength}): {result2}");
+			}
+		}
+
+		CelestePathBridge.LogInfo("FMOD", $"Applying Android audio hints before FMOD init: javaReady={javaBridgeReady}; sampleRate={outputSampleRate}; blockSize={outputBlockSize}; lowLatency={supportsLowLatency}; bluetooth={bluetoothOn}");
 	}
 
 	public static void Update()
