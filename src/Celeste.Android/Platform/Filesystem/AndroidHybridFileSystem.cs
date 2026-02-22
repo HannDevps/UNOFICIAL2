@@ -148,7 +148,20 @@ public sealed class AndroidHybridFileSystem : IFileSystem
 
             try
             {
-                return _assets.Open(assetPath);
+                var assetStream = _assets.Open(assetPath);
+                if (assetStream.CanSeek)
+                {
+                    return assetStream;
+                }
+
+                var bufferedStream = new MemoryStream();
+                using (assetStream)
+                {
+                    assetStream.CopyTo(bufferedStream);
+                }
+
+                bufferedStream.Position = 0;
+                return bufferedStream;
             }
             catch (Exception exception)
             {
