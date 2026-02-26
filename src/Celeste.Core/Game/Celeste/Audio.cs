@@ -107,7 +107,7 @@ public static class Audio
 
 	private static FMOD.Studio.System system;
 
-	private static FMOD.Studio._3D_ATTRIBUTES attributes3d = default(FMOD.Studio._3D_ATTRIBUTES);
+	private static FMOD.ATTRIBUTES_3D attributes3d = default(FMOD.ATTRIBUTES_3D);
 
 	public static Dictionary<string, EventDescription> cachedEventDescriptions = new Dictionary<string, EventDescription>();
 
@@ -361,7 +361,7 @@ public static class Audio
 						int retryDelayMs = GetAndroidRetryDelayMilliseconds(initializeResult);
 						if (retryDelayMs > 0)
 						{
-							Thread.Sleep(retryDelayMs);
+						System.Threading.Thread.Sleep(retryDelayMs);
 						}
 					}
 					finally
@@ -594,8 +594,7 @@ public static class Audio
 			return;
 		}
 
-		StringBuilder name = new StringBuilder(256);
-		if (lowLevelSystem.getDriverInfo(0, name, name.Capacity, out _, out driverSampleRate, out driverSpeakerMode, out driverSpeakerModeChannels) != RESULT.OK)
+		if (lowLevelSystem.getDriverInfo(0, out string name, 256, out _, out driverSampleRate, out driverSpeakerMode, out driverSpeakerModeChannels) != RESULT.OK)
 		{
 			return;
 		}
@@ -707,9 +706,9 @@ public static class Audio
 			return;
 		}
 
-		FMOD.Studio._3D_ATTRIBUTES attributes = default(FMOD.Studio._3D_ATTRIBUTES);
+		FMOD.ATTRIBUTES_3D attributes = default(FMOD.ATTRIBUTES_3D);
 		attributes.forward.x = forward.X;
-		attributes.forward.z = forward.Y;
+		attributes.forward.y = forward.Y;
 		attributes.forward.z = forward.Z;
 		attributes.up.x = up.X;
 		attributes.up.y = up.Y;

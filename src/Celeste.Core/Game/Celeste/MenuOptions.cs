@@ -811,7 +811,7 @@ public static class MenuOptions
 		}
 	}
 
-	public static TextMenu Create(bool inGame = false, EventInstance snapshot = null)
+	public static TextMenu Create(bool inGame = false, EventInstance snapshot = default)
 	{
 		MenuOptions.inGame = inGame;
 		MenuOptions.snapshot = snapshot;

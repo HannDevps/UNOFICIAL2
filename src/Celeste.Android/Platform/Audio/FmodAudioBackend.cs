@@ -39,7 +39,7 @@ public sealed class FmodAudioBackend : IAudioBackend
 
         try
         {
-            _logger.Log(LogLevel.Info, "FMOD", $"Preparing FMOD backend for ABI={Build.SupportedAbis?[0] ?? "unknown"}");
+            _logger.Log(LogLevel.Info, "FMOD", $"Preparing FMOD 2.03.12 backend for ABI={Build.SupportedAbis?[0] ?? "unknown"}");
 
             var nativeLibrariesReady = EnsureNativeLibrariesLoaded();
             if (!nativeLibrariesReady)
@@ -70,7 +70,7 @@ public sealed class FmodAudioBackend : IAudioBackend
 
     public void OnPause()
     {
-        // FMOD 1.10.14 Java bridge does not expose a pause callback.
+        // FMOD Java bridge on Android does not expose a pause callback.
     }
 
     public void OnResume()

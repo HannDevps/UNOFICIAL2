@@ -157,6 +157,45 @@ jobs:
 
           Write-Host "Content validation OK. File count: $fileCount"
 
+      - name: Validate local FMOD 2.03.12 package
+        shell: pwsh
+        run: |
+          $fmodRoot = Join-Path $env:GITHUB_WORKSPACE "FMOD-2.03.12"
+          $legacyFmodRoot = Join-Path $env:GITHUB_WORKSPACE "FMOD-11.014"
+
+          if (Test-Path $legacyFmodRoot) {
+            throw "Legacy FMOD package must not exist: $legacyFmodRoot"
+          }
+
+          if (-not (Test-Path $fmodRoot)) {
+            throw "FMOD-2.03.12 not found in repository root. Add the package locally at FMOD-2.03.12/."
+          }
+
+          $requiredFiles = @(
+            "api/core/lib/armeabi-v7a/libfmod.so",
+            "api/core/lib/arm64-v8a/libfmod.so",
+            "api/studio/lib/armeabi-v7a/libfmodstudio.so",
+            "api/studio/lib/arm64-v8a/libfmodstudio.so",
+            "api/core/lib/fmod.jar"
+          )
+
+          foreach ($relative in $requiredFiles) {
+            $full = Join-Path $fmodRoot $relative
+            if (-not (Test-Path $full)) {
+              throw "Missing required FMOD file: $full"
+            }
+          }
+
+          $csprojPath = Join-Path $env:GITHUB_WORKSPACE "src/Celeste.Android/Celeste.Android.csproj"
+          $csprojContent = Get-Content $csprojPath -Raw
+          if ($csprojContent -match "FMOD-11\.014" -or $csprojContent -match "api[\\/]lowlevel[\\/]lib") {
+            throw "Legacy FMOD references found in Celeste.Android.csproj. Use FMOD-2.03.12 api/core + api/studio only."
+          }
+
+          if ($csprojContent -match "libfmodL\.so" -or $csprojContent -match "libfmodstudioL\.so") {
+            throw "Release build must not reference FMOD logging libraries (*L.so)."
+          }
+
       - name: Restore solution
         run: dotnet restore "Celeste.AndroidPort.sln"
 

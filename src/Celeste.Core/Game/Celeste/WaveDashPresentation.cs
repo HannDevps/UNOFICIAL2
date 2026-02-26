@@ -362,7 +362,7 @@ public class WaveDashPresentation : Entity
 		}
 	}
 
-	public WaveDashPresentation(FMOD.Studio.EventInstance usingSfx = null)
+	public WaveDashPresentation(FMOD.Studio.EventInstance usingSfx = default)
 	{
 		base.Tag = Tags.HUD;
 		Viewing = true;
