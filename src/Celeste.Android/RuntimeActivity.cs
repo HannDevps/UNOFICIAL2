@@ -293,6 +293,6 @@ public class RuntimeActivity : AndroidGameActivity
         AppContext.SetSwitch(AndroidRuntimePolicy.AggressiveGarbageCollectionSwitch, profile.EnableAggressiveGarbageCollection);
         AppContext.SetSwitch(AndroidRuntimePolicy.PreferReachGraphicsProfileSwitch, profile.PreferReachGraphicsProfile);
         AppContext.SetSwitch(AndroidRuntimePolicy.ForceLegacyBlendStateSwitch, true);
-        AppContext.SetSwitch(AudioRuntimePolicy.EnableFmodOnAndroidSwitch, false);
+        AppContext.SetSwitch(AudioRuntimePolicy.EnableFmodOnAndroidSwitch, true);
     }
 }
